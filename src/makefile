@@ -57,8 +57,9 @@ OCV = ../deps/lib/$(TARGET)/opencv
 ZLIB =
 ifneq ($(TARGET_SYS), linux)
 ZLIB = $(OCV)/share/OpenCV/3rdparty/lib/libzlib.a
+TBB_LIB = $(OCV)/share/OpenCV/3rdparty/lib/libtbb.a
 endif
-OCV_AUX = $(OCV)/share/OpenCV/3rdparty/lib/libtbb.a $(ZLIB)
+OCV_AUX = $(TBB_LIB) $(ZLIB)
 
 OCV_CFLAGS = -I$(OCV)/include
 OCV_LIBS = $(addprefix $(OCV)/lib/libopencv_,photo.a imgproc.a core.a) $(OCV_AUX)

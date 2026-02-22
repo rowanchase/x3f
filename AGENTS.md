@@ -18,9 +18,58 @@ You are to maintain notes in maticulous detail of all your work and findings.  A
 You should keep a journal like series of notes saved in the format eg. "12-02-2026.md" for the 12th of Feb 2026.  This type of note should be your daily work, progresss, thoughts and questions, experiments or tasks that you need to pick up later.
 You must also keep a progress.md which you should keep up to date as a high level reference of all the work you have done and what the remaining work left to be done is.
 
-You can also keep any other notes under any other orgnisational system that will help you to keep track of everything you need to remember and any insights that will continue to help you.  If you do choose to do this, you should be sure to update your AGENTS.md file to remind yourself of the system and where to find these notes.
-
 Each time you start your day for work, you should check your progress.md and any relevant journal entries to remind yourself of where you were up to and from this information plan out the work for today.
+
+# Key Source Files
+
+- `src/x3f_extract.c` - Main CLI tool, parses arguments and orchestrates conversion
+- `src/x3f_process.c` - Core image processing pipeline (black level, scaling, color conversion)
+- `src/x3f_output_tiff.c` - TIFF file writer using libtiff
+- `src/x3f_matrix.c` - Color space conversion matrices (sRGB, AdobeRGB, ProPhotoRGB)
+- `src/x3f_spatial_gain.c` - Spatial gain/color compensation across frame
+- `src/x3f_denoise.c` - Denoising algorithms
+- `src/x3f_meta.c` - Metadata extraction from CAMF blocks
+- `src/x3f_image.c` - Image data handling
+
+# Processing Pipeline (x3f_process.c)
+
+1. Load X3F and extract raw data
+2. Compute black level from masked pixels (DarkShieldTop/Bottom, columns)
+3. Get max raw levels from metadata
+4. Calculate intermediate bias (for 14-bit denoising)
+5. Scale raw data to 14-bit intermediate range
+6. Interpolate bad pixels
+7. Run denoising (optional)
+8. Color conversion: Raw -> XYZ -> target color space (sRGB/AdobeRGB/ProPhotoRGB)
+9. Apply spatial gain compensation (Merrill cameras: enabled by default, version < 4.0)
+10. Apply gamma/LUT encoding
+
+# Reference Files
+
+- `reference_files/X3Fs/` - 10 raw X3F files from DP2 Merrill (_P2M0927.X3F to _P2M0937.X3F)
+- `reference_files/TIFFs/` - Corresponding TIFF outputs from Sigma Photo Pro
+
+# Merrill Camera Technical Details
+
+- Cameras: DP1 Merrill, DP2 Merrill, DP3 Merrill
+- Sensor: APS-C Foveon X3, 15.4MP (4800 x 3200 x 3 layers)
+- X3F version: 2.x (pre-Quattro, version < 4.0)
+- Spatial gain: Enabled by default for Merrill (version < 4.0)
+
+# Tools
+
+- `tools/compare_output.py` - Python script to compare x3f_extract output against Sigma Photo Pro reference TIFFs
+  - Computes RMSE, MAE, per-channel metrics, regional analysis
+  - Usage: `python3 tools/compare_output.py <x3f_file> <reference_tiff> --x3f-extract ./bin/linux-x86_64/x3f_extract`
+
+# Build Notes
+
+- OpenCV must be built from source before compiling x3f_extract
+- The bundled OpenCV 3.0 requires a patch for GCC 11+ compatibility:
+  - Edit `deps/src/opencv/cmake/OpenCVDetectCXXCompiler.cmake` to handle `-dumpversion` returning major version only
+  - Replace lines 66-80 with code that tries `-dumpfullversion` first, falls back to `-v` output parsing
+- Build OpenCV with: `-DENABLE_PRECOMPILED_HEADERS=OFF -DWITH_TBB=OFF`
+- On Linux, TBB is not required (makefile updated to handle this)
 
 # Framework for working through this task
 
@@ -32,10 +81,10 @@ Each time you start your day for work, you should check your progress.md and any
 
 4. Choose a single isolated feature/difference that is causing a problem to proceed with.
 
-4. You should then research the web for any information and hints on the X3F format and how Sigma might be processing this particular feature.
+5. You should then research the web for any information and hints on the X3F format and how Sigma might be processing this particular feature.
 
-5. You should then develop a comprehensive theory as to what image processing step is required to resolve the particular issue at hand.
+6. You should then develop a comprehensive theory as to what image processing step is required to resolve the particular issue at hand.
 
-6. Now, implement your intended fix and run the tests to ensure it passes.
+7. Now, implement your intended fix and run the tests to ensure it passes.
 
-7. If the test passes, validate manually that the two files match and if so make a commit to git for your progress.  If either the test fails or your manual check fails then go back to step 4 and repeat until you make the test pass.
+8. If the test passes, validate manually that the two files match and if so make a commit to git for your progress.  If either the test fails or your manual check fails then go back to step 4 and repeat until you make the test pass.

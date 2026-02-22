@@ -79,6 +79,7 @@ static int get_black_level(x3f_t *x3f,
   if (image->channels < colors) return 0;
 
 #define BOTTOM 1
+#define RIGHT 3
 
   /* Workaround for bug in DP2 firmware. DarkShieldBottom is specified
      incorrectly and thus ignored. */
@@ -98,6 +99,20 @@ static int get_black_level(x3f_t *x3f,
     if (x3f_get_camf_unsigned(x3f, "CAMERAID", &cameraid))
       if (cameraid == X3F_CAMERAID_SDQH)
 	use[BOTTOM] = 0;
+  }
+
+  /* Workaround for DP1/DP2/DP3 Merrill - the right shielded area has a
+     linear exposure gradient and is not truly optically shielded.
+     Using it for black level calculation causes underestimation,
+     resulting in green tint in shadows. */
+  {
+    char *cammodel;
+
+    if (x3f_get_prop_entry(x3f, "CAMMODEL", &cammodel))
+      if (!strcmp(cammodel, "SIGMA DP1 Merrill") ||
+	  !strcmp(cammodel, "SIGMA DP2 Merrill") ||
+	  !strcmp(cammodel, "SIGMA DP3 Merrill"))
+	use[RIGHT] = 0;
   }
 
   /* Real CAMF rects */
