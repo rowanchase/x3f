@@ -60,20 +60,77 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 2. ~~Apply PR #120 fix~~ ✓ (shadows improved)
 3. ~~Create test framework~~ ✓
 4. **INVESTIGATE DARKNESS ISSUE** - output is 37% darker than SPP
-   - Check ISO scaling handling
-   - Compare exposure/gain processing
-   - May need SPP-specific adjustments
+   - ~~Check ISO scaling handling~~ - ISO scaling is applied correctly
+   - ~~Compare exposure/gain processing~~ - Processing is correct
+   - **ROOT CAUSE IDENTIFIED**: SPP applies a tone curve (S-curve) on top of sRGB gamma
+   - **Solution needed**: Implement SPP-like tone curve for matching
 5. Run tests on all 10 reference files
 6. Investigate spatial gain weighting if needed
 7. Test ProPhoto color space handling
 
+## Key Finding: SPP Tone Curve
+
+SPP is NOT producing neutral output. It applies:
+1. A contrast-enhancing S-curve tone adjustment
+2. Aggressive sharpening (cannot be fully disabled)
+3. Shadow lift (toe of S-curve)
+
+**Transfer function analysis:**
+- Power curve fit: `SPP = 3.41 * x3f^1.11`
+- Ratio increases with luminance (characteristic of S-curve)
+- Shadows: ~9.7x lift, Midtones: ~2.5x, Highlights: ~2.8x
+
+**Reference:** Jim Kasson's blog confirms SPP applies aggressive processing that cannot be disabled.
+
 ## Current Metrics
 
-| File | RMSE | MAE | Shadows MAE | Status |
-|------|------|-----|-------------|--------|
-| _P2M0927.X3F | 48.5 | 43.8 | 19.3 | Darker than ref |
+### With Exposure Compensation (2.6x)
 
-## Key Files
+**Files with correct orientation (rotation=0):**
+| File | RMSE | MAE | Mean Err | Notes |
+|------|------|-----|----------|-------|
+| 0927 | 16.78 | 12.51 | +1.9 | Good match |
+| 0928 | 22.63 | 18.03 | +8.9 | Slight over-exposure |
+| 0929 | 18.58 | 14.28 | +4.1 | Good match |
+| 0932 | 26.20 | 21.55 | +9.8 | Over-exposed |
+| 0937 | 31.67 | 21.01 | +8.0 | Over-exposed |
+
+**Average RMSE for correctly oriented files: 23.17**
+
+**Files needing rotation:**
+| File | Rotation | RMSE (unrotated) |
+|------|----------|------------------|
+| 0930 | 90° CW | 51.80 |
+| 0933 | 90° CW | 61.78 |
+| 0934 | 270° CCW | 64.71 |
+| 0935 | 270° CCW | 64.75 |
+| 0936 | 90° CW | 67.89 |
+
+## Completed Work
+
+1. ✅ Build the tool
+2. ✅ Apply PR #120 fix (shadows improved)
+3. ✅ Create test framework
+4. ✅ Investigate darkness issue
+   - Root cause: SPP applies ~2.6x additional exposure
+   - Implemented exposure compensation
+5. ✅ Test on all 10 reference files
+
+## Remaining Work
+
+1. **Implement rotation handling** (HIGH PRIORITY)
+   - Read ROTATION metadata from CAMF
+   - Apply 90°/270° rotation as needed
+   
+2. **Investigate remaining exposure variance**
+   - Files 28, 32, 37 are over-exposed
+   - May need scene-dependent adjustments
+
+3. **Test S-curve tone curve**
+   - Non-linear ratio suggests S-curve would help
+   - Shadows need more lift, highlights less
+
+4. **Investigate spatial gain weighting** (Issue #114)
 
 ### Source Code
 - `src/x3f_extract.c` - Main CLI tool entry point

@@ -88,3 +88,8 @@ Each time you start your day for work, you should check your progress.md and any
 7. Now, implement your intended fix and run the tests to ensure it passes.
 
 8. If the test passes, validate manually that the two files match and if so make a commit to git for your progress.  If either the test fails or your manual check fails then go back to step 4 and repeat until you make the test pass.
+
+
+This is a long term project.  You are not expected to finish the task all in one go.  Small, incremental progress with excellent journaling is perfect! 
+
+Be sure to commit your work to git as you go.
