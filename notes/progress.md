@@ -5,6 +5,54 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-02-24: Sigmoid Tone Curve Implementation
+
+#### Analysis
+- Discovered consistent luminance error pattern:
+  - Shadows (0-50): +17-18 too bright
+  - Lower midtones (50-100): +12-13 too bright
+  - Midtones (100-150): Near perfect
+  - Upper midtones (150-200): -6-7 too dark
+  - Highlights (200-255): -2-4 too dark
+- This pattern indicates SPP applies an S-curve tone adjustment
+
+#### Implementation
+- Added `x3f_sigmoid_LUT()` and `x3f_sRGB_sigmoid_LUT()` to `src/x3f_matrix.c`
+- Modified `src/x3f_process.c` to use sigmoid-enhanced sRGB LUT
+- Optimal sigmoid steepness: k=4.4
+
+#### Results After Sigmoid (25 files)
+| File | RMSE | Mean Error |
+|------|------|------------|
+| 0993 | 14.87 | +2.38 |
+| 0994 | 16.83 | +0.84 |
+| 0991 | 17.69 | +1.18 |
+| 0998 | 18.28 | +0.98 |
+| 0927 | 18.28 | -0.92 |
+| 0990 | 18.35 | +1.02 |
+| 1000 | 18.39 | +0.27 |
+| 0992 | 18.61 | -0.25 |
+| 1001 | 18.98 | -0.16 |
+| 0997 | 19.11 | +1.81 |
+| 0995 | 19.25 | -0.48 |
+| 0996 | 19.35 | -0.35 |
+| 0929 | 19.81 | -1.33 |
+| 0928 | 21.01 | -0.32 |
+| 0932 | 23.05 | +1.59 |
+| 0930 | 23.95 | -1.57 |
+| 0933 | 24.01 | +0.97 |
+| 1009 | 26.99 | +2.57 |
+| 0935 | 27.92 | -0.03 |
+| 1008 | 28.09 | +1.19 |
+| 0934 | 28.10 | -0.04 |
+| 1004 | 28.97 | -0.26 |
+| 1003 | 29.59 | -0.23 |
+| 0937 | 30.73 | +0.61 |
+| 0936 | 33.49 | -1.86 |
+
+**Average RMSE: 22.55** (improved from 24.8, 9% better)
+**Mean errors now balanced around zero**
+
 ### 2026-02-23: Rotation Implementation & New Reference Files
 
 #### New Reference Files Added
@@ -18,41 +66,9 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 - 17 of 25 files required rotation (portrait orientation)
 
 #### ISO Discovery
-- Files have varying ISO: ISO 200 (most) and ISO 400 (1003, 1008)
+- Files have varying ISO: ISO 200 (most) and ISO 400 (1003, 1004, 1008, 1009)
 - Attempted ISO-relative exposure compensation but made things worse
 - Original 2.6x compensation works best across all ISO values
-
-#### Current Metrics (25 files)
-| File | RMSE | MAE | Mean Error |
-|------|------|-----|------------|
-| 0927 | 16.78 | 12.51 | +1.9 |
-| 0928 | 22.63 | 18.03 | +8.9 |
-| 0929 | 18.58 | 14.28 | +4.1 |
-| 0930 | 23.23 | 15.34 | +3.8 |
-| 0932 | 26.20 | 21.55 | +9.8 |
-| 0933 | 29.12 | 22.75 | +11.2 |
-| 0934 | 29.57 | 20.89 | +8.8 |
-| 0935 | 29.14 | 20.45 | +8.4 |
-| 0936 | 34.19 | 20.36 | +5.9 |
-| 0937 | 31.67 | 21.01 | +8.0 |
-| 0990 | 23.26 | 19.29 | +7.4 |
-| 0991 | 18.75 | 14.04 | +4.4 |
-| 0992 | 24.30 | 20.56 | +10.4 |
-| **0993** | **15.39** | 10.17 | +0.8 |
-| 0994 | 23.30 | 18.86 | +8.3 |
-| 0995 | 21.82 | 17.65 | +8.2 |
-| 0996 | 22.02 | 17.85 | +8.5 |
-| 0997 | 22.94 | 18.76 | +8.0 |
-| 0998 | 21.27 | 16.91 | +6.7 |
-| 1000 | 23.07 | 18.87 | +10.3 |
-| 1001 | 24.17 | 20.31 | +11.1 |
-| 1003 | 30.05 | 23.60 | +5.6 |
-| 1004 | 28.30 | 20.13 | +3.4 |
-| 1008 | 29.55 | 23.33 | +4.1 |
-| 1009 | 31.41 | 25.69 | +6.9 |
-
-**Best match:** 0993 (RMSE 15.39, mean error 0.76)
-**Average RMSE:** ~24.8
 
 #### Build Environment
 - Patched OpenCV 3.0 cmake files for GCC 11 compatibility
@@ -158,24 +174,27 @@ SPP is NOT producing neutral output. It applies:
 1. ✅ Build the tool
 2. ✅ Apply PR #120 fix (shadows improved)
 3. ✅ Create test framework
-4. ✅ Investigate darkness issue
-   - Root cause: SPP applies ~2.6x additional exposure
-   - Implemented exposure compensation
-5. ✅ Test on all 10 reference files
+4. ✅ Implement exposure compensation (2.6x)
+5. ✅ Test on all 25 reference files
+6. ✅ Implement rotation handling
+7. ✅ Implement sigmoid tone curve (k=4.4)
 
 ## Remaining Work
 
-1. **Implement rotation handling** (HIGH PRIORITY)
-   - Read ROTATION metadata from CAMF
-   - Apply 90°/270° rotation as needed
-   
-2. **Investigate remaining exposure variance**
-   - Files 28, 32, 37 are over-exposed
-   - May need scene-dependent adjustments
+1. **Investigate clipped highlights (MaxHist=255 files)**
+   - Files: 0930, 0933, 0934, 0935, 0936, 0937
+   - These have RMSE 23-34 vs average 22.55
+   - SPP applies highlight recovery/roll-off
+   - May need to implement highlight recovery using X3F metadata
 
-3. **Test S-curve tone curve**
-   - Non-linear ratio suggests S-curve would help
-   - Shadows need more lift, highlights less
+2. **Investigate ISO 400 processing**
+   - Files: 1003, 1004, 1008, 1009
+   - These have consistently higher RMSE (27-30)
+   - May need different processing for higher ISO
+
+3. **Consider reading TC parameters from X3F**
+   - Currently hardcoding steepness=4.4
+   - X3F metadata has TCGamma, TCStart, TCEnd, TCSteepness
 
 4. **Investigate spatial gain weighting** (Issue #114)
 
@@ -183,7 +202,7 @@ SPP is NOT producing neutral output. It applies:
 - `src/x3f_extract.c` - Main CLI tool entry point
 - `src/x3f_process.c` - Core image processing (black level, color conversion, denoising)
 - `src/x3f_output_tiff.c` - TIFF output writer
-- `src/x3f_matrix.c` - Color space conversion matrices
+- `src/x3f_matrix.c` - Color space conversion matrices, sigmoid LUT
 - `src/x3f_spatial_gain.c` - Spatial gain/color compensation
 
 ### Tools
