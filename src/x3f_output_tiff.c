@@ -9,9 +9,99 @@
 
 #include "x3f_output_tiff.h"
 #include "x3f_process.h"
+#include "x3f_io.h"
 
 #include <stdlib.h>
 #include <tiffio.h>
+
+static void rotate_image_90_cw(x3f_area16_t *image)
+{
+  uint16_t *new_data;
+  uint32_t new_rows = image->columns;
+  uint32_t new_columns = image->rows;
+  uint32_t new_row_stride = new_columns * image->channels;
+  uint32_t row, col, ch;
+
+  new_data = (uint16_t *)malloc(new_rows * new_row_stride * sizeof(uint16_t));
+
+  for (row = 0; row < image->rows; row++) {
+    for (col = 0; col < image->columns; col++) {
+      for (ch = 0; ch < image->channels; ch++) {
+        uint16_t val = image->data[row * image->row_stride + col * image->channels + ch];
+        uint32_t new_row = col;
+        uint32_t new_col = image->rows - 1 - row;
+        new_data[new_row * new_row_stride + new_col * image->channels + ch] = val;
+      }
+    }
+  }
+
+  free(image->buf);
+  image->data = image->buf = new_data;
+  image->rows = new_rows;
+  image->columns = new_columns;
+  image->row_stride = new_row_stride;
+}
+
+static void rotate_image_90_ccw(x3f_area16_t *image)
+{
+  uint16_t *new_data;
+  uint32_t new_rows = image->columns;
+  uint32_t new_columns = image->rows;
+  uint32_t new_row_stride = new_columns * image->channels;
+  uint32_t row, col, ch;
+
+  new_data = (uint16_t *)malloc(new_rows * new_row_stride * sizeof(uint16_t));
+
+  for (row = 0; row < image->rows; row++) {
+    for (col = 0; col < image->columns; col++) {
+      for (ch = 0; ch < image->channels; ch++) {
+        uint16_t val = image->data[row * image->row_stride + col * image->channels + ch];
+        uint32_t new_row = image->columns - 1 - col;
+        uint32_t new_col = row;
+        new_data[new_row * new_row_stride + new_col * image->channels + ch] = val;
+      }
+    }
+  }
+
+  free(image->buf);
+  image->data = image->buf = new_data;
+  image->rows = new_rows;
+  image->columns = new_columns;
+  image->row_stride = new_row_stride;
+}
+
+static void rotate_image_180(x3f_area16_t *image)
+{
+  uint32_t row, col, ch;
+  uint32_t half_rows = image->rows / 2;
+
+  for (row = 0; row < half_rows; row++) {
+    for (col = 0; col < image->columns; col++) {
+      for (ch = 0; ch < image->channels; ch++) {
+        uint32_t idx1 = row * image->row_stride + col * image->channels + ch;
+        uint32_t idx2 = (image->rows - 1 - row) * image->row_stride + 
+                        (image->columns - 1 - col) * image->channels + ch;
+        uint16_t tmp = image->data[idx1];
+        image->data[idx1] = image->data[idx2];
+        image->data[idx2] = tmp;
+      }
+    }
+  }
+
+  if (image->rows % 2 == 1) {
+    row = half_rows;
+    for (col = 0; col < image->columns / 2; col++) {
+      for (ch = 0; ch < image->channels; ch++) {
+        uint32_t idx1 = row * image->row_stride + col * image->channels + ch;
+        uint32_t idx2 = row * image->row_stride + 
+                        (image->columns - 1 - col) * image->channels + ch;
+        uint16_t tmp = image->data[idx1];
+        image->data[idx1] = image->data[idx2];
+        image->data[idx2] = tmp;
+      }
+    }
+  }
+}
 
 /* extern */
 x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
@@ -35,6 +125,18 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
 		     wb)) {
     TIFFClose(f_out);
     return X3F_ARGUMENT_ERROR;
+  }
+
+  switch (x3f->header.rotation) {
+  case 90:
+    rotate_image_90_cw(&image);
+    break;
+  case 180:
+    rotate_image_180(&image);
+    break;
+  case 270:
+    rotate_image_90_ccw(&image);
+    break;
   }
 
   TIFFSetField(f_out, TIFFTAG_IMAGEWIDTH, image.columns);

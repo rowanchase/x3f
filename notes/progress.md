@@ -5,7 +5,54 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
-### 2026-02-22: Test Framework & First Fix
+### 2026-02-23: Rotation Implementation & New Reference Files
+
+#### New Reference Files Added
+- 15 new X3F/TIFF pairs added (0990-1009)
+- Total: 25 reference files
+
+#### Rotation Implementation
+- Implemented rotation handling in `src/x3f_output_tiff.c`
+- Reads rotation metadata from X3F header (0, 90, 180, 270 degrees)
+- Applies 90° CW, 90° CCW, or 180° rotation as needed
+- 17 of 25 files required rotation (portrait orientation)
+
+#### ISO Discovery
+- Files have varying ISO: ISO 200 (most) and ISO 400 (1003, 1008)
+- Attempted ISO-relative exposure compensation but made things worse
+- Original 2.6x compensation works best across all ISO values
+
+#### Current Metrics (25 files)
+| File | RMSE | MAE | Mean Error |
+|------|------|-----|------------|
+| 0927 | 16.78 | 12.51 | +1.9 |
+| 0928 | 22.63 | 18.03 | +8.9 |
+| 0929 | 18.58 | 14.28 | +4.1 |
+| 0930 | 23.23 | 15.34 | +3.8 |
+| 0932 | 26.20 | 21.55 | +9.8 |
+| 0933 | 29.12 | 22.75 | +11.2 |
+| 0934 | 29.57 | 20.89 | +8.8 |
+| 0935 | 29.14 | 20.45 | +8.4 |
+| 0936 | 34.19 | 20.36 | +5.9 |
+| 0937 | 31.67 | 21.01 | +8.0 |
+| 0990 | 23.26 | 19.29 | +7.4 |
+| 0991 | 18.75 | 14.04 | +4.4 |
+| 0992 | 24.30 | 20.56 | +10.4 |
+| **0993** | **15.39** | 10.17 | +0.8 |
+| 0994 | 23.30 | 18.86 | +8.3 |
+| 0995 | 21.82 | 17.65 | +8.2 |
+| 0996 | 22.02 | 17.85 | +8.5 |
+| 0997 | 22.94 | 18.76 | +8.0 |
+| 0998 | 21.27 | 16.91 | +6.7 |
+| 1000 | 23.07 | 18.87 | +10.3 |
+| 1001 | 24.17 | 20.31 | +11.1 |
+| 1003 | 30.05 | 23.60 | +5.6 |
+| 1004 | 28.30 | 20.13 | +3.4 |
+| 1008 | 29.55 | 23.33 | +4.1 |
+| 1009 | 31.41 | 25.69 | +6.9 |
+
+**Best match:** 0993 (RMSE 15.39, mean error 0.76)
+**Average RMSE:** ~24.8
 
 #### Build Environment
 - Patched OpenCV 3.0 cmake files for GCC 11 compatibility
