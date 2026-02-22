@@ -812,6 +812,16 @@ static int convert_data(x3f_t *x3f,
       /* Do color conversion */
       x3f_3x3_3x1_mul(conv_matrix, input, output);
 
+      /* Apply SPP-like exposure compensation 
+         SPP appears to apply additional brightness beyond ISO scaling.
+         Based on analysis: ratio of ~2.6x in linear space on top of ISO scaling.
+         This is applied before gamma encoding. */
+      {
+        double spp_exposure_comp = 2.6;
+        for (color = 0; color < 3; color++)
+          output[color] *= spp_exposure_comp;
+      }
+
       /* Write back the data, doing non linear coding */
       for (color = 0; color < 3; color++)
 	*valp[color] = x3f_LUT_lookup(lut, LUTSIZE, output[color]);

@@ -78,6 +78,15 @@ def load_tiff(path):
 
 def compute_metrics(output_arr, reference_arr):
     """Compute comparison metrics between output and reference."""
+    # Handle transposed images (some SPP outputs are rotated)
+    if output_arr.shape != reference_arr.shape:
+        # Check if transposed
+        if (output_arr.shape[0] == reference_arr.shape[1] and 
+            output_arr.shape[1] == reference_arr.shape[0] and
+            output_arr.shape[2] == reference_arr.shape[2]):
+            # Transpose reference to match output
+            reference_arr = np.transpose(reference_arr, (1, 0, 2))
+    
     assert output_arr.shape == reference_arr.shape, \
         f"Shape mismatch: output {output_arr.shape} vs reference {reference_arr.shape}"
     
