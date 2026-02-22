@@ -48,6 +48,8 @@ extern void x3f_Bradford_D65_to_D50(double *a);
 
 extern void x3f_sRGB_LUT(double *lut, int size, uint16_t max);
 extern void x3f_gamma_LUT(double *lut, int size, uint16_t max, double gamma);
+extern void x3f_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness);
+extern void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness);
 extern uint16_t x3f_LUT_lookup(double *lut, int size, double val);
 
 #endif	/* X3F_MATRIX_H */

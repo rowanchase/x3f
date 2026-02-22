@@ -257,6 +257,61 @@ void x3f_gamma_LUT(double *lut, int size, uint16_t max, double gamma)
   }
 }
 
+void x3f_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness)
+{
+  int i;
+  double sig_min, sig_max;
+
+  sig_min = 1.0 / (1.0 + exp(steepness * 0.5));
+  sig_max = 1.0 / (1.0 + exp(-steepness * 0.5));
+  
+  for (i = 0; i < size; i++) {
+    double x = (double)i / (size - 1);
+    double sig, norm_sig;
+    
+    sig = 1.0 / (1.0 + exp(-steepness * (x - 0.5)));
+    norm_sig = (sig - sig_min) / (sig_max - sig_min);
+    
+    if (norm_sig < 0)
+      lut[i] = 0;
+    else if (norm_sig > 1)
+      lut[i] = max;
+    else
+      lut[i] = norm_sig * max;
+  }
+}
+
+void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness)
+{
+  double a = 0.055;
+  double thres = 0.0031308;
+  double sig_min, sig_max;
+  int i;
+
+  sig_min = 1.0 / (1.0 + exp(steepness * 0.5));
+  sig_max = 1.0 / (1.0 + exp(-steepness * 0.5));
+  
+  for (i = 0; i < size; i++) {
+    double lin = (double)i / (size - 1);
+    double srgb, sig, norm_sig;
+    
+    if (lin <= thres)
+      srgb = 12.92 * lin;
+    else
+      srgb = (1 + a) * pow(lin, 1/2.4) - a;
+    
+    sig = 1.0 / (1.0 + exp(-steepness * (srgb - 0.5)));
+    norm_sig = (sig - sig_min) / (sig_max - sig_min);
+    
+    if (norm_sig < 0)
+      lut[i] = 0;
+    else if (norm_sig > 1)
+      lut[i] = max;
+    else
+      lut[i] = norm_sig * max;
+  }
+}
+
 uint16_t x3f_LUT_lookup(double *lut, int size, double val)
 {
   double index = val*(size - 1);

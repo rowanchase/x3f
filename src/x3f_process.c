@@ -728,7 +728,7 @@ static int get_conv(x3f_t *x3f, x3f_color_encoding_t encoding, char *wb,
 
   switch (encoding) {
   case SRGB:
-    x3f_sRGB_LUT(lut, lutsize, max_out);
+    x3f_sRGB_sigmoid_LUT(lut, lutsize, max_out, 4.4);
     x3f_XYZ_to_sRGB(xyz_to_rgb);
     break;
   case ARGB:
