@@ -37,5 +37,12 @@ extern int x3f_get_camf_matrix_for_wb(x3f_t *x3f,
 				      char *list, char *wb, int dim0, int dim1,
 				      double *matrix);
 extern int x3f_get_max_raw(x3f_t *x3f, uint32_t *max_raw);
+extern int x3f_get_highlight_params(x3f_t *x3f,
+				     double *blending_low,
+				     double *blending_high,
+				     double *restore_thresh,
+				     double *chan_thresh1,
+				     double *chan_thresh2,
+				     double *sat_factor);
 
 #endif

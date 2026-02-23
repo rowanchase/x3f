@@ -310,9 +310,51 @@ SPP is NOT producing neutral output. It applies:
 
 ## Remaining Work
 
-1. **Investigate Highlight Recovery**
+### Highlight Recovery Improvement Project
+
+A comprehensive plan has been developed to improve highlight recovery beyond SPP. See `notes/highlight-recovery-plan.md` for full details.
+
+**Key Discovery**: X3F files contain unused highlight metadata:
+- `HighlightBlendingLow` = 0.75
+- `HighlightBlendingHigh` = 1.5
+- `HighlightRestoreThresh` = 1.75
+- `HighlightChanThresh1/2` = 0.5
+- `HighlightSatFactor` = 1.0
+
+**Advantage**: Foveon sensor captures RGB at every pixel, enabling direct channel reconstruction when other channels are unclipped (unlike Bayer which requires spatial interpolation).
+
+**Phased Plan**:
+1. **Phase 1**: Read and utilize CAMF highlight parameters ✅ (COMPLETED)
+2. **Phase 2**: Implement channel-based reconstruction  
+3. **Phase 3**: Advanced soft knee compression
+4. **Phase 4**: Multiple reconstruction methods (luminance, color propagation, edge-aware)
+5. **Phase 5**: Extended 14-bit dynamic range processing
+
+#### Phase 1 Implementation (2026-02-24)
+
+Completed:
+- Added `x3f_get_highlight_params()` function in `x3f_meta.c`
+- Added logging in `x3f_get_image()` to output highlight parameters in DEBUG mode
+- Added CLI flags for override (-hl-blending-low, -hl-blending-high, etc.)
+- Verified with test file _P2M0927.X3F - parameters correctly read and logged
+
+Verification output:
+```
+dbg: Highlight parameters from CAMF:
+dbg:   HighlightBlendingLow    = 0.750000
+dbg:   HighlightBlendingHigh   = 1.500000
+dbg:   HighlightRestoreThresh = 1.750000
+dbg:   HighlightChanThresh1   = 0.500000
+dbg:   HighlightChanThresh2   = 0.500000
+dbg:   HighlightSatFactor     = 1.000000
+```
+
+Next: Connect CLI overrides to processing pipeline in Phase 2
+
+### Original Remaining Work
+
+1. ~~**Investigate Highlight Recovery**~~ → Now covered by new plan above
    - Clipped files (0936, 1003) still have high RMSE (17-19)
-   - Need to implement logic to reconstruct clipped channels or soft clip more aggressively
 
 2. **Investigate remaining B channel errors for ISO 400**
    - B channel still has non-linear response (R² = 0.75)

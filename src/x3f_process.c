@@ -1000,6 +1000,23 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 
   x3f_get_camf_float(x3f, "CaptureISO", &capture_iso);
 
+  {
+    double hl_blending_low, hl_blending_high, hl_restore_thresh;
+    double hl_chan_thresh1, hl_chan_thresh2, hl_sat_factor;
+
+    x3f_get_highlight_params(x3f,
+			     &hl_blending_low, &hl_blending_high, &hl_restore_thresh,
+			     &hl_chan_thresh1, &hl_chan_thresh2, &hl_sat_factor);
+
+    x3f_printf(DEBUG, "Highlight parameters from CAMF:\n");
+    x3f_printf(DEBUG, "  HighlightBlendingLow    = %f\n", hl_blending_low);
+    x3f_printf(DEBUG, "  HighlightBlendingHigh   = %f\n", hl_blending_high);
+    x3f_printf(DEBUG, "  HighlightRestoreThresh = %f\n", hl_restore_thresh);
+    x3f_printf(DEBUG, "  HighlightChanThresh1   = %f\n", hl_chan_thresh1);
+    x3f_printf(DEBUG, "  HighlightChanThresh2   = %f\n", hl_chan_thresh2);
+    x3f_printf(DEBUG, "  HighlightSatFactor     = %f\n", hl_sat_factor);
+  }
+
   if (encoding == QTOP) {
     x3f_area16_t qtop;
 

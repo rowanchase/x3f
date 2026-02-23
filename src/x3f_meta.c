@@ -415,3 +415,61 @@ static int x3f_is_TRUE_engine(x3f_t *x3f)
     return x3f_get_camf_signed_vector(x3f, "SaturationLevel",
 				      (int32_t *)max_raw);
 }
+
+typedef struct {
+  double highlight_blending_low;
+  double highlight_blending_high;
+  double highlight_restore_thresh;
+  double highlight_chan_thresh1;
+  double highlight_chan_thresh2;
+  double highlight_sat_factor;
+} x3f_highlight_params_t;
+
+/* extern */ int x3f_get_highlight_params(x3f_t *x3f,
+					   double *blending_low,
+					   double *blending_high,
+					   double *restore_thresh,
+					   double *chan_thresh1,
+					   double *chan_thresh2,
+					   double *sat_factor)
+{
+  int found = 0;
+
+  if (x3f_get_camf_float(x3f, "HighlightBlendingLow", blending_low)) {
+    found = 1;
+  } else {
+    *blending_low = 0.75;
+  }
+
+  if (x3f_get_camf_float(x3f, "HighlightBlendingHigh", blending_high)) {
+    found = 1;
+  } else {
+    *blending_high = 1.5;
+  }
+
+  if (x3f_get_camf_float(x3f, "HighlightRestoreThresh", restore_thresh)) {
+    found = 1;
+  } else {
+    *restore_thresh = 1.75;
+  }
+
+  if (x3f_get_camf_float(x3f, "HighlightChanThresh1", chan_thresh1)) {
+    found = 1;
+  } else {
+    *chan_thresh1 = 0.5;
+  }
+
+  if (x3f_get_camf_float(x3f, "HighlightChanThresh2", chan_thresh2)) {
+    found = 1;
+  } else {
+    *chan_thresh2 = 0.5;
+  }
+
+  if (x3f_get_camf_float(x3f, "HighlightSatFactor", sat_factor)) {
+    found = 1;
+  } else {
+    *sat_factor = 1.0;
+  }
+
+  return found;
+}
