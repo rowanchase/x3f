@@ -708,6 +708,12 @@ static int get_conv(x3f_t *x3f, x3f_color_encoding_t encoding, char *wb,
   double xyz_to_rgb[9];
   double raw_to_rgb[9];
   double sensor_iso, capture_iso, iso_scaling;
+  double tc_steepness = 4.4; /* Default derived from experimentation */
+  double val;
+
+  if (x3f_get_camf_float(x3f, "TCSteepness", &val)) {
+    tc_steepness = val;
+  }
 
   if (x3f_get_camf_float(x3f, "SensorISO", &sensor_iso) &&
       x3f_get_camf_float(x3f, "CaptureISO", &capture_iso)) {
@@ -728,7 +734,7 @@ static int get_conv(x3f_t *x3f, x3f_color_encoding_t encoding, char *wb,
 
   switch (encoding) {
   case SRGB:
-    x3f_sRGB_sigmoid_LUT(lut, lutsize, max_out, 4.4);
+    x3f_sRGB_sigmoid_LUT(lut, lutsize, max_out, tc_steepness);
     x3f_XYZ_to_sRGB(xyz_to_rgb);
     break;
   case ARGB:

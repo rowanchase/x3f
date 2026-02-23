@@ -5,7 +5,38 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
-### 2026-02-23: Highlight Desaturation Implementation
+### 2026-02-24: TCSteepness Implementation (commit pending)
+
+#### Analysis
+- Found `TCSteepness` in X3F metadata (value 3.0 for all files)
+- Previous hardcoded value was 4.4 (experimentally derived)
+- Testing `TCSteepness=3.0` yielded better RMSE than 4.4:
+  - 0993: 13.05 -> 12.49
+  - 0936: 18.52 -> 18.40
+  - 1003: 20.86 -> 20.28
+
+#### Implementation
+- Modified `src/x3f_process.c` to read `TCSteepness` from CAMF metadata
+- Used it in `x3f_sRGB_sigmoid_LUT()`
+
+### 2026-02-23: ISO-Dependent Shadow Processing (commit 0168f4c)
+
+#### Analysis
+- ISO 400 files had higher RMSE (22.18) vs ISO 200 (15.31)
+- Linear regression revealed non-linear B channel response for ISO 400 (R² = 0.75)
+- Shadow regions needed stronger desaturation for higher ISO
+
+#### Implementation
+- Added capture_iso parameter to convert_data()
+- ISO-dependent shadow desaturation: 0.7 (ISO 200) → 0.95 (ISO 400)
+- Added B channel boost in shadows for ISO 400
+
+#### Results
+- Average RMSE: 16.41 → 16.09 (2% better)
+- ISO 400 avg: 22.18 → 20.19 (9% better)
+- ISO 200 avg: 15.31 (unchanged)
+
+### 2026-02-23: Shadow Desaturation (commit b301e04)
 
 #### Analysis
 - Discovered SPP desaturates highlights towards white
@@ -228,16 +259,16 @@ SPP is NOT producing neutral output. It applies:
 4. ✅ Implement exposure compensation (2.6x)
 5. ✅ Test on all 25 reference files
 6. ✅ Implement rotation handling
-7. ✅ Implement sigmoid tone curve (k=4.4)
+7. ✅ Implement sigmoid tone curve (metadata TCSteepness=3.0)
 8. ✅ Implement highlight desaturation
 9. ✅ Implement shadow desaturation (luminance-based)
 10. ✅ Implement ISO-dependent shadow processing
 
 ## Remaining Work
 
-1. **Consider reading TC parameters from X3F**
-   - Currently hardcoding steepness=4.4
-   - X3F metadata has TCGamma, TCStart, TCEnd, TCSteepness
+1. **Investigate Highlight Recovery**
+   - Clipped files (0936, 1003) still have high RMSE (18-20)
+   - Need to implement logic to reconstruct clipped channels or soft clip more aggressively
 
 2. **Investigate remaining B channel errors for ISO 400**
    - B channel still has non-linear response (R² = 0.75)
