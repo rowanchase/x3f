@@ -5,6 +5,24 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-02-23: Highlight Desaturation Implementation
+
+#### Analysis
+- Discovered SPP desaturates highlights towards white
+- Our highlights had saturation 0.353, reference had 0.052
+- B/G ratio in highlights: ours 0.704, reference 0.917
+
+#### Implementation
+- Added highlight desaturation in `src/x3f_process.c`
+- For bright pixels (max channel > 0.6), gradually bring channels towards max
+- Uses quadratic falloff for smooth transition
+
+#### Results
+- File 0936 (worst case): RMSE 33.49 → **22.19** (34% improvement!)
+- Files with clipped highlights all improved by 15-34%
+- **Average RMSE: 22.55 → 21.09** (6.5% improvement)
+- Non-clipped files unaffected (0993: 14.87 → 14.89)
+
 ### 2026-02-24: Sigmoid Tone Curve Implementation
 
 #### Analysis
@@ -147,7 +165,37 @@ SPP is NOT producing neutral output. It applies:
 
 ## Current Metrics
 
-### With Exposure Compensation (2.6x)
+### After Highlight Desaturation (25 files)
+
+**Average RMSE: 21.09** (improved from 22.55, 6.5% better)
+
+| File | RMSE | Mean Err | Notes |
+|------|------|----------|-------|
+| 0993 | 14.89 | +2.51 | Best match |
+| 0994 | 16.94 | +0.92 | |
+| 0991 | 17.74 | +1.43 | |
+| 0927 | 18.25 | -0.69 | |
+| 0998 | 18.30 | +1.09 | |
+| 0990 | 18.35 | +1.02 | |
+| 1000 | 18.41 | +0.34 | |
+| 0992 | 18.61 | -0.25 | |
+| 1001 | 18.98 | -0.12 | |
+| 0997 | 19.10 | +1.86 | |
+| 0995 | 19.25 | -0.45 | |
+| 0996 | 19.35 | -0.32 | |
+| 0929 | 19.72 | -1.26 | |
+| 0930 | 19.92 | -0.49 | Clipped, improved |
+| 0933 | 20.23 | +1.43 | Clipped, improved |
+| 0928 | 20.93 | -0.24 | |
+| 0936 | 22.19 | +1.28 | Clipped, improved 34% |
+| 0932 | 23.03 | +1.72 | |
+| 0935 | 23.29 | +1.32 | Clipped, improved |
+| 0934 | 23.39 | +1.32 | Clipped, improved |
+| 0937 | 23.71 | +2.48 | Clipped, improved |
+| 1009 | 26.96 | +2.59 | ISO 400 |
+| 1008 | 28.05 | +1.22 | ISO 400 |
+| 1004 | 28.06 | +0.42 | ISO 400 |
+| 1003 | 29.56 | +0.01 | ISO 400 |
 
 **Files with correct orientation (rotation=0):**
 | File | RMSE | MAE | Mean Err | Notes |
@@ -181,20 +229,18 @@ SPP is NOT producing neutral output. It applies:
 
 ## Remaining Work
 
-1. **Investigate clipped highlights (MaxHist=255 files)**
-   - Files: 0930, 0933, 0934, 0935, 0936, 0937
-   - These have RMSE 23-34 vs average 22.55
-   - SPP applies highlight recovery/roll-off
-   - May need to implement highlight recovery using X3F metadata
-
-2. **Investigate ISO 400 processing**
+1. **Investigate ISO 400 processing**
    - Files: 1003, 1004, 1008, 1009
    - These have consistently higher RMSE (27-30)
    - May need different processing for higher ISO
 
-3. **Consider reading TC parameters from X3F**
+2. **Consider reading TC parameters from X3F**
    - Currently hardcoding steepness=4.4
    - X3F metadata has TCGamma, TCStart, TCEnd, TCSteepness
+
+3. **Consider removing highlight roll-off from LUT**
+   - The highlight desaturation works better
+   - The roll-off in x3f_matrix.c may be redundant
 
 4. **Investigate spatial gain weighting** (Issue #114)
 

@@ -822,6 +822,26 @@ static int convert_data(x3f_t *x3f,
           output[color] *= spp_exposure_comp;
       }
 
+      /* Highlight desaturation: in bright highlights, desaturate towards white
+         SPP desaturates highlights to produce cleaner whites
+         This prevents colored highlights (e.g., magenta) in clipped regions */
+      {
+        double max_channel = output[0];
+        for (color = 1; color < 3; color++)
+          if (output[color] > max_channel) max_channel = output[color];
+        
+        if (max_channel > 0.6) {
+          double desat_factor = (max_channel - 0.6) / 0.4;
+          if (desat_factor > 1.0) desat_factor = 1.0;
+          desat_factor = desat_factor * desat_factor;
+          
+          for (color = 0; color < 3; color++) {
+            double diff = max_channel - output[color];
+            output[color] += diff * desat_factor * 0.8;
+          }
+        }
+      }
+
       /* Write back the data, doing non linear coding */
       for (color = 0; color < 3; color++)
 	*valp[color] = x3f_LUT_lookup(lut, LUTSIZE, output[color]);

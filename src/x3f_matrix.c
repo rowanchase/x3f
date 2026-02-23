@@ -281,11 +281,21 @@ void x3f_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness)
   }
 }
 
+static double highlight_rolloff(double x, double threshold, double max_output)
+{
+  if (x <= threshold)
+    return x * max_output;
+  double t = (x - threshold) / (1.0 - threshold);
+  double compressed = threshold + (1.0 - threshold) * (t / (t + 1.0));
+  return compressed * max_output;
+}
+
 void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness)
 {
   double a = 0.055;
   double thres = 0.0031308;
   double sig_min, sig_max;
+  double highlight_threshold = 0.95;
   int i;
 
   sig_min = 1.0 / (1.0 + exp(steepness * 0.5));
@@ -306,7 +316,7 @@ void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness)
     if (norm_sig < 0)
       lut[i] = 0;
     else if (norm_sig > 1)
-      lut[i] = max;
+      lut[i] = highlight_rolloff(norm_sig, highlight_threshold, max);
     else
       lut[i] = norm_sig * max;
   }
@@ -317,11 +327,17 @@ uint16_t x3f_LUT_lookup(double *lut, int size, double val)
   double index = val*(size - 1);
   int i = (int)floor(index);
   double frac = index - i;
+  double highlight_threshold = 0.95;
 
   if (i<0)
     return (uint16_t)round(lut[0]);
-  else if (i>=(size - 1))
-    return (uint16_t)round(lut[size-1]);
+  else if (i>=(size - 1)) {
+    double t = (val - highlight_threshold) / (1.0 - highlight_threshold);
+    double compressed = highlight_threshold + (1.0 - highlight_threshold) * (t / (t + 1.0));
+    double result = compressed * lut[size-1];
+    if (result > 65535) result = 65535;
+    return (uint16_t)round(result);
+  }
   else
     return (uint16_t)round(lut[i] + frac*(lut[i+1] - lut[i]));
 }
