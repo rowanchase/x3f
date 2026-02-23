@@ -829,10 +829,10 @@ static int convert_data(x3f_t *x3f,
 
       /* Apply SPP-like exposure compensation 
          SPP appears to apply additional brightness beyond ISO scaling.
-         Based on analysis: ratio of ~2.6x in linear space on top of ISO scaling.
+         Based on analysis: ratio of ~2.5x in linear space on top of ISO scaling.
          This is applied before gamma encoding. */
       {
-        double spp_exposure_comp = 2.6;
+        double spp_exposure_comp = 2.5;
         for (color = 0; color < 3; color++)
           output[color] *= spp_exposure_comp;
       }
