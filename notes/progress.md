@@ -5,19 +5,25 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
-### 2026-02-24: TCSteepness Implementation (commit pending)
+### 2026-02-24: TCSteepness & Exposure Compensation Refinement (commit 585a584)
 
 #### Analysis
-- Found `TCSteepness` in X3F metadata (value 3.0 for all files)
-- Previous hardcoded value was 4.4 (experimentally derived)
-- Testing `TCSteepness=3.0` yielded better RMSE than 4.4:
-  - 0993: 13.05 -> 12.49
-  - 0936: 18.52 -> 18.40
-  - 1003: 20.86 -> 20.28
+- **Tone Curve:** Found `TCSteepness=3.0` in X3F metadata.
+- **Testing:** Using `TCSteepness=3.0` (instead of hardcoded 4.4) improved RMSE but shifted exposure (Mean Error went from near 0 to +3-5).
+- **Correction:** Adjusted exposure compensation from 2.6x to 2.5x to balance the exposure with the new tone curve.
 
 #### Implementation
-- Modified `src/x3f_process.c` to read `TCSteepness` from CAMF metadata
-- Used it in `x3f_sRGB_sigmoid_LUT()`
+- Modified `src/x3f_process.c` to read `TCSteepness` from CAMF metadata.
+- Updated `spp_exposure_comp` to 2.5.
+
+#### Results (Selected Files)
+| File | Type | Previous RMSE | New RMSE | Improvement |
+|------|------|---------------|----------|-------------|
+| 0993 | Best | 13.05 | 12.72 | 2.5% |
+| 0936 | Clipped | 18.52 | 17.91 | 3.3% |
+| 1003 | ISO 400 | 20.86 | 19.80 | 5.1% |
+
+**All tested files are now below RMSE 20.**
 
 ### 2026-02-23: ISO-Dependent Shadow Processing (commit 0168f4c)
 
@@ -256,10 +262,10 @@ SPP is NOT producing neutral output. It applies:
 1. ✅ Build the tool
 2. ✅ Apply PR #120 fix (shadows improved)
 3. ✅ Create test framework
-4. ✅ Implement exposure compensation (2.6x)
+4. ✅ Implement exposure compensation (2.5x)
 5. ✅ Test on all 25 reference files
 6. ✅ Implement rotation handling
-7. ✅ Implement sigmoid tone curve (metadata TCSteepness=3.0)
+7. ✅ Implement sigmoid tone curve (using metadata TCSteepness)
 8. ✅ Implement highlight desaturation
 9. ✅ Implement shadow desaturation (luminance-based)
 10. ✅ Implement ISO-dependent shadow processing
@@ -267,7 +273,7 @@ SPP is NOT producing neutral output. It applies:
 ## Remaining Work
 
 1. **Investigate Highlight Recovery**
-   - Clipped files (0936, 1003) still have high RMSE (18-20)
+   - Clipped files (0936, 1003) still have high RMSE (17-19)
    - Need to implement logic to reconstruct clipped channels or soft clip more aggressively
 
 2. **Investigate remaining B channel errors for ISO 400**
