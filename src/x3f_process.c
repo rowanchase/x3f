@@ -845,11 +845,11 @@ static int convert_data(x3f_t *x3f,
         output[1] *= green_correction;
       }
 
-      /* R and B channel boost: small universal boost to address overall underexposure
-         Testing 1.02 boost based on observed R/G and B/G ratio differences. */
+      /* R and B channel boost: R-only 1.03 boost
+         Testing showed R-only boost is optimal; B boost makes results worse */
       {
-        double r_correction = 1.02;
-        double b_correction = 1.02;
+        double r_correction = 1.03;
+        double b_correction = 1.0;
         output[0] *= r_correction;
         output[2] *= b_correction;
       }
