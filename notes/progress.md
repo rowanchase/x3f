@@ -291,6 +291,22 @@ SPP is NOT producing neutral output. It applies:
 8. ✅ Implement highlight desaturation
 9. ✅ Implement shadow desaturation (luminance-based)
 10. ✅ Implement ISO-dependent shadow processing
+11. ✅ Implement green channel correction (0.96x)
+12. ✅ Implement universal R/B channel boost (1.02x)
+
+## Current Average RMSE
+
+**Average RMSE: 13.45** (with green + R/B corrections)
+
+| File | RMSE | Notes |
+|------|------|-------|
+| 0994 | 12.12 | Best match |
+| 0993 | 12.68 | |
+| 0991 | 13.53 | |
+| 0990 | 13.80 | |
+| 0995 | 14.28 | |
+| 0996 | 14.28 | |
+| 0997 | 14.53 | |
 
 ## Remaining Work
 
