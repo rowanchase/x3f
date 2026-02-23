@@ -822,6 +822,33 @@ static int convert_data(x3f_t *x3f,
           output[color] *= spp_exposure_comp;
       }
 
+      /* Shadow desaturation: reduce saturation in dark areas
+         SPP desaturates shadows to reduce chroma noise visibility.
+         This is especially important for higher ISO images.
+         Desaturate towards gray (average of channels) for darker pixels. */
+      {
+        double min_channel = output[0];
+        double max_channel = output[0];
+        for (color = 1; color < 3; color++) {
+          if (output[color] < min_channel) min_channel = output[color];
+          if (output[color] > max_channel) max_channel = output[color];
+        }
+        
+        double luminance = (min_channel + max_channel) / 2.0;
+        
+        if (luminance < 0.3 && max_channel > min_channel) {
+          double gray = (output[0] + output[1] + output[2]) / 3.0;
+          double shadow_factor = (0.3 - luminance) / 0.3;
+          if (shadow_factor > 1.0) shadow_factor = 1.0;
+          shadow_factor = shadow_factor * shadow_factor;
+          
+          for (color = 0; color < 3; color++) {
+            double diff = gray - output[color];
+            output[color] += diff * shadow_factor * 0.7;
+          }
+        }
+      }
+
       /* Highlight desaturation: in bright highlights, desaturate towards white
          SPP desaturates highlights to produce cleaner whites
          This prevents colored highlights (e.g., magenta) in clipped regions */

@@ -165,37 +165,37 @@ SPP is NOT producing neutral output. It applies:
 
 ## Current Metrics
 
-### After Highlight Desaturation (25 files)
+### After Shadow Desaturation (25 files)
 
-**Average RMSE: 21.09** (improved from 22.55, 6.5% better)
+**Average RMSE: 16.41** (improved from 21.09, 22% better)
 
 | File | RMSE | Mean Err | Notes |
 |------|------|----------|-------|
-| 0993 | 14.89 | +2.51 | Best match |
-| 0994 | 16.94 | +0.92 | |
-| 0991 | 17.74 | +1.43 | |
-| 0927 | 18.25 | -0.69 | |
-| 0998 | 18.30 | +1.09 | |
-| 0990 | 18.35 | +1.02 | |
-| 1000 | 18.41 | +0.34 | |
-| 0992 | 18.61 | -0.25 | |
-| 1001 | 18.98 | -0.12 | |
-| 0997 | 19.10 | +1.86 | |
-| 0995 | 19.25 | -0.45 | |
-| 0996 | 19.35 | -0.32 | |
-| 0929 | 19.72 | -1.26 | |
-| 0930 | 19.92 | -0.49 | Clipped, improved |
-| 0933 | 20.23 | +1.43 | Clipped, improved |
-| 0928 | 20.93 | -0.24 | |
-| 0936 | 22.19 | +1.28 | Clipped, improved 34% |
-| 0932 | 23.03 | +1.72 | |
-| 0935 | 23.29 | +1.32 | Clipped, improved |
-| 0934 | 23.39 | +1.32 | Clipped, improved |
-| 0937 | 23.71 | +2.48 | Clipped, improved |
-| 1009 | 26.96 | +2.59 | ISO 400 |
-| 1008 | 28.05 | +1.22 | ISO 400 |
-| 1004 | 28.06 | +0.42 | ISO 400 |
-| 1003 | 29.56 | +0.01 | ISO 400 |
+| 0994 | 11.19 | - | Best match |
+| 0992 | 11.84 | - | |
+| 1000 | 12.37 | - | |
+| 1001 | 12.46 | - | |
+| 0990 | 12.94 | - | |
+| 0993 | 13.05 | +2.23 | Previously best |
+| 0998 | 13.67 | - | |
+| 0997 | 14.00 | - | |
+| 0933 | 14.10 | - | Clipped |
+| 0996 | 14.25 | - | |
+| 0991 | 14.26 | - | |
+| 0995 | 14.26 | - | |
+| 0927 | 15.83 | - | |
+| 0928 | 16.56 | - | |
+| 0929 | 17.23 | - | |
+| 0930 | 17.33 | - | Clipped |
+| 0932 | 18.51 | - | |
+| 0936 | 18.52 | - | Clipped |
+| 0934 | 19.39 | - | Clipped |
+| 0935 | 19.46 | - | Clipped |
+| 1009 | 19.81 | - | ISO 400 |
+| 0937 | 20.30 | - | Clipped |
+| 1008 | 22.48 | - | ISO 400 |
+| 1004 | 23.20 | - | ISO 400 |
+| 1003 | 23.22 | - | ISO 400, worst |
 
 **Files with correct orientation (rotation=0):**
 | File | RMSE | MAE | Mean Err | Notes |
@@ -226,21 +226,22 @@ SPP is NOT producing neutral output. It applies:
 5. ✅ Test on all 25 reference files
 6. ✅ Implement rotation handling
 7. ✅ Implement sigmoid tone curve (k=4.4)
+8. ✅ Implement highlight desaturation
+9. ✅ Implement shadow desaturation (luminance-based)
 
 ## Remaining Work
 
-1. **Investigate ISO 400 processing**
-   - Files: 1003, 1004, 1008, 1009
-   - These have consistently higher RMSE (27-30)
-   - May need different processing for higher ISO
+1. **Fine-tune shadow desaturation parameters**
+   - Current threshold: 0.3, strength: 0.7
+   - May need ISO-dependent tuning
 
 2. **Consider reading TC parameters from X3F**
    - Currently hardcoding steepness=4.4
    - X3F metadata has TCGamma, TCStart, TCEnd, TCSteepness
 
-3. **Consider removing highlight roll-off from LUT**
-   - The highlight desaturation works better
-   - The roll-off in x3f_matrix.c may be redundant
+3. **Investigate remaining color errors**
+   - B channel still has higher errors
+   - May need additional color matrix adjustment
 
 4. **Investigate spatial gain weighting** (Issue #114)
 
