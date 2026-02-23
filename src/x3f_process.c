@@ -770,10 +770,12 @@ static int convert_data(x3f_t *x3f,
 			x3f_area16_t *image, x3f_image_levels_t *ilevels,
 			x3f_color_encoding_t encoding,
 			int apply_sgain,
-			char *wb)
+			char *wb,
+			double capture_iso)
 {
   int row, col, color;
-  uint16_t max_out = 65535; /* TODO: should be possible to adjust */
+  uint16_t max_out = 65535;
+  double iso_factor;
 
   double conv_matrix[9];
   double lut[LUTSIZE];
@@ -784,6 +786,13 @@ static int convert_data(x3f_t *x3f,
 
   if (!get_conv(x3f, encoding, wb, LUTSIZE, max_out, lut, conv_matrix))
     return 0;
+  
+  if (capture_iso > 100) {
+    iso_factor = capture_iso / 200.0;
+    if (iso_factor > 2.0) iso_factor = 2.0;
+  } else {
+    iso_factor = 1.0;
+  }
 
   if (apply_sgain) {
     sgain_num = x3f_get_spatial_gain(x3f, wb, sgain);
@@ -825,7 +834,8 @@ static int convert_data(x3f_t *x3f,
       /* Shadow desaturation: reduce saturation in dark areas
          SPP desaturates shadows to reduce chroma noise visibility.
          This is especially important for higher ISO images.
-         Desaturate towards gray (average of channels) for darker pixels. */
+         Desaturate towards gray (average of channels) for darker pixels.
+         ISO 400 needs stronger shadow desaturation than ISO 200. */
       {
         double min_channel = output[0];
         double max_channel = output[0];
@@ -836,15 +846,23 @@ static int convert_data(x3f_t *x3f,
         
         double luminance = (min_channel + max_channel) / 2.0;
         
-        if (luminance < 0.3 && max_channel > min_channel) {
+        double shadow_strength = 0.7 + 0.25 * (iso_factor - 1.0);
+        double shadow_threshold = 0.3;
+        
+        if (luminance < shadow_threshold && max_channel > min_channel) {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double shadow_factor = (0.3 - luminance) / 0.3;
+          double shadow_factor = (shadow_threshold - luminance) / shadow_threshold;
           if (shadow_factor > 1.0) shadow_factor = 1.0;
           shadow_factor = shadow_factor * shadow_factor;
           
           for (color = 0; color < 3; color++) {
             double diff = gray - output[color];
-            output[color] += diff * shadow_factor * 0.7;
+            output[color] += diff * shadow_factor * shadow_strength;
+          }
+          
+          if (iso_factor > 1.5 && output[2] < gray) {
+            double b_boost = (gray - output[2]) * shadow_factor * 0.1 * (iso_factor - 1.0);
+            output[2] += b_boost;
           }
         }
       }
@@ -953,8 +971,11 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 {
   x3f_area16_t original_image, expanded;
   x3f_image_levels_t il;
+  double capture_iso = 200.0;
 
   if (wb == NULL) wb = x3f_get_wb(x3f);
+
+  x3f_get_camf_float(x3f, "CaptureISO", &capture_iso);
 
   if (encoding == QTOP) {
     x3f_area16_t qtop;
@@ -985,7 +1006,7 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
   else if (denoise && !run_denoising(x3f)) return 0;
 
   if (encoding != NONE &&
-      !convert_data(x3f, &original_image, &il, encoding, apply_sgain, wb)) {
+      !convert_data(x3f, &original_image, &il, encoding, apply_sgain, wb, capture_iso)) {
     free(image->buf);
     return 0;
   }

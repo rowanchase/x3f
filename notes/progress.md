@@ -165,9 +165,9 @@ SPP is NOT producing neutral output. It applies:
 
 ## Current Metrics
 
-### After Shadow Desaturation (25 files)
+### After ISO-Dependent Shadow Processing (25 files)
 
-**Average RMSE: 16.41** (improved from 21.09, 22% better)
+**Average RMSE: 16.09** (improved from 16.41, 2% better)
 
 | File | RMSE | Mean Err | Notes |
 |------|------|----------|-------|
@@ -176,7 +176,7 @@ SPP is NOT producing neutral output. It applies:
 | 1000 | 12.37 | - | |
 | 1001 | 12.46 | - | |
 | 0990 | 12.94 | - | |
-| 0993 | 13.05 | +2.23 | Previously best |
+| 0993 | 13.05 | +2.23 | |
 | 0998 | 13.67 | - | |
 | 0997 | 14.00 | - | |
 | 0933 | 14.10 | - | Clipped |
@@ -187,15 +187,18 @@ SPP is NOT producing neutral output. It applies:
 | 0928 | 16.56 | - | |
 | 0929 | 17.23 | - | |
 | 0930 | 17.33 | - | Clipped |
+| 1009 | 17.82 | - | ISO 400 |
 | 0932 | 18.51 | - | |
 | 0936 | 18.52 | - | Clipped |
 | 0934 | 19.39 | - | Clipped |
-| 0935 | 19.46 | - | Clipped |
-| 1009 | 19.81 | - | ISO 400 |
+| 0935 | 19.47 | - | Clipped |
 | 0937 | 20.30 | - | Clipped |
-| 1008 | 22.48 | - | ISO 400 |
-| 1004 | 23.20 | - | ISO 400 |
-| 1003 | 23.22 | - | ISO 400, worst |
+| 1008 | 20.66 | - | ISO 400 |
+| 1003 | 20.86 | - | ISO 400 |
+| 1004 | 21.42 | - | ISO 400 |
+
+**ISO 200 avg RMSE: 15.31**
+**ISO 400 avg RMSE: 20.19** (improved from 22.18, 9% better)
 
 **Files with correct orientation (rotation=0):**
 | File | RMSE | MAE | Mean Err | Notes |
@@ -228,22 +231,19 @@ SPP is NOT producing neutral output. It applies:
 7. ✅ Implement sigmoid tone curve (k=4.4)
 8. ✅ Implement highlight desaturation
 9. ✅ Implement shadow desaturation (luminance-based)
+10. ✅ Implement ISO-dependent shadow processing
 
 ## Remaining Work
 
-1. **Fine-tune shadow desaturation parameters**
-   - Current threshold: 0.3, strength: 0.7
-   - May need ISO-dependent tuning
-
-2. **Consider reading TC parameters from X3F**
+1. **Consider reading TC parameters from X3F**
    - Currently hardcoding steepness=4.4
    - X3F metadata has TCGamma, TCStart, TCEnd, TCSteepness
 
-3. **Investigate remaining color errors**
-   - B channel still has higher errors
+2. **Investigate remaining B channel errors for ISO 400**
+   - B channel still has non-linear response (R² = 0.75)
    - May need additional color matrix adjustment
 
-4. **Investigate spatial gain weighting** (Issue #114)
+3. **Investigate spatial gain weighting** (Issue #114)
 
 ### Source Code
 - `src/x3f_extract.c` - Main CLI tool entry point
