@@ -56,6 +56,18 @@ static int sum_area_sqdev(x3f_area16_t area, int colors, double *mean,
   return area.columns*area.rows;
 }
 
+static void reconstruct_highlight_channels(double *input, double *output,
+                                           double hl_blending_low,
+                                           double hl_blending_high)
+{
+  int color;
+  (void)hl_blending_low;
+  (void)hl_blending_high;
+
+  for (color = 0; color < 3; color++)
+    output[color] = input[color];
+}
+
 static int get_black_level(x3f_t *x3f,
 			   x3f_area16_t *image, int rescale, int colors,
 			   double *black_level, double *black_dev)
@@ -808,111 +820,127 @@ static int convert_data(x3f_t *x3f,
     sgain_num = 0;
   }
 
-  for (row = 0; row < image->rows; row++) {
-    for (col = 0; col < image->columns; col++) {
-      uint16_t *valp[3];
-      double input[3], output[3];
+  {
+    double hl_blending_low, hl_blending_high, hl_restore_thresh;
+    double hl_chan_thresh1, hl_chan_thresh2, hl_sat_factor;
 
-      /* Get the data */
-      for (color = 0; color < 3; color++) {
-	valp[color] =
-	  &image->data[image->row_stride*row + image->channels*col + color];
-	input[color] = x3f_calc_spatial_gain(sgain, sgain_num,
-					     row, col, color,
-					     image->rows, image->columns) *
-	  (*valp[color] - ilevels->black[color]) /
-	  (ilevels->white[color] - ilevels->black[color]);
-      }
+    x3f_get_highlight_params(x3f,
+                             &hl_blending_low, &hl_blending_high, &hl_restore_thresh,
+                             &hl_chan_thresh1, &hl_chan_thresh2, &hl_sat_factor);
 
-      /* Do color conversion */
-      x3f_3x3_3x1_mul(conv_matrix, input, output);
+    for (row = 0; row < image->rows; row++) {
+      for (col = 0; col < image->columns; col++) {
+        uint16_t *valp[3];
+        double input[3], reconstructed[3];
 
-      /* Apply SPP-like exposure compensation 
-         SPP appears to apply additional brightness beyond ISO scaling.
-         Based on analysis: ratio of ~2.5x in linear space on top of ISO scaling.
-         This is applied before gamma encoding. */
-      {
-        double spp_exposure_comp = 2.5;
+        /* Get the data */
+        for (color = 0; color < 3; color++) {
+          valp[color] =
+            &image->data[image->row_stride*row + image->channels*col + color];
+          input[color] = x3f_calc_spatial_gain(sgain, sgain_num,
+                                               row, col, color,
+                                               image->rows, image->columns) *
+            (*valp[color] - ilevels->black[color]) /
+            (ilevels->white[color] - ilevels->black[color]);
+        }
+
+        double output[3];
+
+        /* Channel-based highlight reconstruction
+           Leverage Foveon's per-pixel RGB to reconstruct clipped channels */
+        reconstruct_highlight_channels(input, reconstructed,
+                                       hl_blending_low, hl_blending_high);
+
+        /* Do color conversion */
+        x3f_3x3_3x1_mul(conv_matrix, reconstructed, output);
+
+        /* Apply SPP-like exposure compensation 
+           SPP appears to apply additional brightness beyond ISO scaling.
+           Based on analysis: ratio of ~2.5x in linear space on top of ISO scaling.
+           This is applied before gamma encoding. */
+        {
+          double spp_exposure_comp = 2.5;
+          for (color = 0; color < 3; color++)
+            output[color] *= spp_exposure_comp;
+        }
+
+        /* Green cast correction: reduce green channel slightly
+           Analysis shows our output has consistent +2 to +4 mean error on green channel
+           compared to SPP reference. Apply small reduction to correct. */
+        {
+          double green_correction = 0.96;
+          output[1] *= green_correction;
+        }
+
+        /* R and B channel boost: R-only 1.03 boost
+           Testing showed R-only boost is optimal; B boost makes results worse */
+        {
+          double r_correction = 1.03;
+          double b_correction = 1.0;
+          output[0] *= r_correction;
+          output[2] *= b_correction;
+        }
+
+        /* Shadow desaturation: reduce saturation in dark areas
+           SPP desaturates shadows to reduce chroma noise visibility.
+           This is especially important for higher ISO images.
+           Desaturate towards gray (average of channels) for darker pixels.
+           ISO 400 needs stronger shadow desaturation than ISO 200. */
+        {
+          double min_channel = output[0];
+          double max_channel = output[0];
+          for (color = 1; color < 3; color++) {
+            if (output[color] < min_channel) min_channel = output[color];
+            if (output[color] > max_channel) max_channel = output[color];
+          }
+          
+          double luminance = (min_channel + max_channel) / 2.0;
+          
+          double shadow_strength = 0.7 + 0.25 * (iso_factor - 1.0);
+          double shadow_threshold = 0.3;
+          
+          if (luminance < shadow_threshold && max_channel > min_channel) {
+            double gray = (output[0] + output[1] + output[2]) / 3.0;
+            double shadow_factor = (shadow_threshold - luminance) / shadow_threshold;
+            if (shadow_factor > 1.0) shadow_factor = 1.0;
+            shadow_factor = shadow_factor * shadow_factor;
+            
+            for (color = 0; color < 3; color++) {
+              double diff = gray - output[color];
+              output[color] += diff * shadow_factor * shadow_strength;
+            }
+            
+            if (iso_factor > 1.5 && output[2] < gray) {
+              double b_boost = (gray - output[2]) * shadow_factor * 0.1 * (iso_factor - 1.0);
+              output[2] += b_boost;
+            }
+          }
+        }
+
+        /* Highlight desaturation: in bright highlights, desaturate towards white
+           SPP desaturates highlights to produce cleaner whites
+           This prevents colored highlights (e.g., magenta) in clipped regions */
+        {
+          double max_channel = output[0];
+          for (color = 1; color < 3; color++)
+            if (output[color] > max_channel) max_channel = output[color];
+          
+          if (max_channel > 0.6) {
+            double desat_factor = (max_channel - 0.6) / 0.4;
+            if (desat_factor > 1.0) desat_factor = 1.0;
+            desat_factor = desat_factor * desat_factor;
+            
+            for (color = 0; color < 3; color++) {
+              double diff = max_channel - output[color];
+              output[color] += diff * desat_factor * 0.8;
+            }
+          }
+        }
+
+        /* Write back the data, doing non linear coding */
         for (color = 0; color < 3; color++)
-          output[color] *= spp_exposure_comp;
+          *valp[color] = x3f_LUT_lookup(lut, LUTSIZE, output[color]);
       }
-
-      /* Green cast correction: reduce green channel slightly
-         Analysis shows our output has consistent +2 to +4 mean error on green channel
-         compared to SPP reference. Apply small reduction to correct. */
-      {
-        double green_correction = 0.96;
-        output[1] *= green_correction;
-      }
-
-      /* R and B channel boost: R-only 1.03 boost
-         Testing showed R-only boost is optimal; B boost makes results worse */
-      {
-        double r_correction = 1.03;
-        double b_correction = 1.0;
-        output[0] *= r_correction;
-        output[2] *= b_correction;
-      }
-
-      /* Shadow desaturation: reduce saturation in dark areas
-         SPP desaturates shadows to reduce chroma noise visibility.
-         This is especially important for higher ISO images.
-         Desaturate towards gray (average of channels) for darker pixels.
-         ISO 400 needs stronger shadow desaturation than ISO 200. */
-      {
-        double min_channel = output[0];
-        double max_channel = output[0];
-        for (color = 1; color < 3; color++) {
-          if (output[color] < min_channel) min_channel = output[color];
-          if (output[color] > max_channel) max_channel = output[color];
-        }
-        
-        double luminance = (min_channel + max_channel) / 2.0;
-        
-        double shadow_strength = 0.7 + 0.25 * (iso_factor - 1.0);
-        double shadow_threshold = 0.3;
-        
-        if (luminance < shadow_threshold && max_channel > min_channel) {
-          double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double shadow_factor = (shadow_threshold - luminance) / shadow_threshold;
-          if (shadow_factor > 1.0) shadow_factor = 1.0;
-          shadow_factor = shadow_factor * shadow_factor;
-          
-          for (color = 0; color < 3; color++) {
-            double diff = gray - output[color];
-            output[color] += diff * shadow_factor * shadow_strength;
-          }
-          
-          if (iso_factor > 1.5 && output[2] < gray) {
-            double b_boost = (gray - output[2]) * shadow_factor * 0.1 * (iso_factor - 1.0);
-            output[2] += b_boost;
-          }
-        }
-      }
-
-      /* Highlight desaturation: in bright highlights, desaturate towards white
-         SPP desaturates highlights to produce cleaner whites
-         This prevents colored highlights (e.g., magenta) in clipped regions */
-      {
-        double max_channel = output[0];
-        for (color = 1; color < 3; color++)
-          if (output[color] > max_channel) max_channel = output[color];
-        
-        if (max_channel > 0.6) {
-          double desat_factor = (max_channel - 0.6) / 0.4;
-          if (desat_factor > 1.0) desat_factor = 1.0;
-          desat_factor = desat_factor * desat_factor;
-          
-          for (color = 0; color < 3; color++) {
-            double diff = max_channel - output[color];
-            output[color] += diff * desat_factor * 0.8;
-          }
-        }
-      }
-
-      /* Write back the data, doing non linear coding */
-      for (color = 0; color < 3; color++)
-	*valp[color] = x3f_LUT_lookup(lut, LUTSIZE, output[color]);
     }
   }
 

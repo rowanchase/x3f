@@ -349,7 +349,31 @@ dbg:   HighlightChanThresh2   = 0.500000
 dbg:   HighlightSatFactor     = 1.000000
 ```
 
-Next: Connect CLI overrides to processing pipeline in Phase 2
+#### Phase 2 Implementation (2026-02-24)
+
+Completed:
+- Added `reconstruct_highlight_channels()` function in `x3f_process.c`
+- Function is integrated into `convert_data()` pipeline
+- Receives CAMF highlight parameters (blending_low, blending_high)
+- Framework in place for channel-based reconstruction
+
+Current Status:
+- Function currently passes through input to output (baseline)
+- Tested multiple approaches:
+  - Threshold 0.95: No significant change (RMSE 17.83)
+  - Threshold 0.80: No significant change (RMSE 17.83)
+  - Old highlight desaturation disabled: RMSE worsened to 35.2 (confirms old code is essential)
+
+Key Finding:
+- The existing highlight desaturation (threshold 0.6, at output color space) is critical
+- Any reconstruction at the raw RGB level must work IN CONJUNCTION with it
+- The challenge is that the normalized input data range doesn't match CAMF parameter ranges
+
+Next Steps:
+- Phase 2 implementation needs more research on:
+  - Proper threshold values for detecting "clipped" channels in normalized data
+  - Channel ratio reconstruction algorithm
+  - Integration with existing highlight desaturation
 
 ### Original Remaining Work
 
