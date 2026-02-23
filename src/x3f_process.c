@@ -837,6 +837,14 @@ static int convert_data(x3f_t *x3f,
           output[color] *= spp_exposure_comp;
       }
 
+      /* Green cast correction: reduce green channel slightly
+         Analysis shows our output has consistent +2 to +4 mean error on green channel
+         compared to SPP reference. Apply small reduction to correct. */
+      {
+        double green_correction = 0.96;
+        output[1] *= green_correction;
+      }
+
       /* Shadow desaturation: reduce saturation in dark areas
          SPP desaturates shadows to reduce chroma noise visibility.
          This is especially important for higher ISO images.

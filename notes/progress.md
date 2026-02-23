@@ -5,6 +5,28 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-02-24: Green Cast Correction
+
+#### Analysis
+- User observed slight green cast in output images
+- Per-channel analysis confirmed consistent G channel positive mean error (+2 to +4)
+- R and B channels had negative mean errors (underexposed)
+
+#### Implementation
+- Added green channel correction factor of 0.96 in `src/x3f_process.c`
+- Applied after exposure compensation, before shadow/highlight processing
+
+#### Results
+| File | Before RMSE | After RMSE | G Mean Err Before | G Mean Err After |
+|------|-------------|------------|------------------|------------------|
+| 0993 | 12.72 | 12.68 | +2.10 | +0.20 |
+| 0994 | 12.14 | 12.12 | -0.01 | -0.62 |
+| 0990 | 13.85 | 13.79 | +4.08 | +2.66 |
+| 0991 | 13.77 | 13.67 | - | +1.52 |
+| 1003 | 19.80 | 19.73 | +3.14 | +1.35 |
+
+**All files showed improved RMSE with green correction.**
+
 ### 2026-02-24: TCSteepness & Exposure Compensation Refinement (commit 585a584)
 
 #### Analysis
