@@ -845,16 +845,14 @@ static int convert_data(x3f_t *x3f,
         output[1] *= green_correction;
       }
 
-      /* R and B channel boost: disabled - highly image-dependent
-         Some images need R/B boost, others don't.
-         The R/B underexposure varies by image and appears to depend on 
-         shooting conditions (lighting, white balance, etc.) */
-      // {
-      //   double r_correction = 1.04;
-      //   double b_correction = 1.04;
-      //   output[0] *= r_correction;
-      //   output[2] *= b_correction;
-      // }
+      /* R and B channel boost: small universal boost to address overall underexposure
+         Testing 1.02 boost based on observed R/G and B/G ratio differences. */
+      {
+        double r_correction = 1.02;
+        double b_correction = 1.02;
+        output[0] *= r_correction;
+        output[2] *= b_correction;
+      }
 
       /* Shadow desaturation: reduce saturation in dark areas
          SPP desaturates shadows to reduce chroma noise visibility.
