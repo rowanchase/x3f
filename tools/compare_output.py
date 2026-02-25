@@ -153,6 +153,191 @@ def compute_metrics(output_arr, reference_arr):
     return metrics
 
 
+def compute_iq_metrics(arr):
+    """Compute image quality metrics beyond RMSE - noise, dynamic range, etc.
+    
+    This analyzes the intrinsic quality of a single image.
+    """
+    metrics = {}
+    
+    # Handle RGBA (take first 3 channels)
+    if len(arr.shape) == 3 and arr.shape[2] == 4:
+        arr = arr[:, :, :3]
+    
+    num_channels = arr.shape[2] if len(arr.shape) == 3 else 1
+    channel_names = ['R', 'G', 'B'][:num_channels]
+    
+    # Calculate luminance
+    if num_channels == 3:
+        lum = 0.299 * arr[:,:,0] + 0.587 * arr[:,:,1] + 0.114 * arr[:,:,2]
+    else:
+        lum = arr[:,:,0] if num_channels == 1 else arr.flatten()
+    
+    # ==== 1. Highlight Headroom Analysis ====
+    metrics['highlights'] = {}
+    
+    # Full-scale clipping (all channels at max)
+    max_vals = np.max(arr, axis=2) if num_channels == 3 else arr
+    fully_clipped = np.sum(max_vals >= 255.0)
+    fully_clipped_pct = 100.0 * fully_clipped / max_vals.size
+    
+    # Per-channel clipping
+    channel_clipped = {}
+    for i, name in enumerate(channel_names):
+        ch = arr[:,:,i] if num_channels > 1 else arr
+        clipped = np.sum(ch >= 255.0)
+        channel_clipped[name] = {
+            'clipped_pixels': int(clipped),
+            'clipped_pct': 100.0 * clipped / ch.size
+        }
+    
+    # Recoverable highlights (some channels clipped, others not)
+    # For Foveon: if one channel is clipped but others aren't, can reconstruct
+    if num_channels == 3:
+        # Find pixels where at least one channel is at max but not all
+        any_clipped = np.any(arr >= 255.0, axis=2)
+        all_clipped = np.all(arr >= 255.0, axis=2)
+        recoverable = np.sum(any_clipped) - np.sum(all_clipped)
+        recoverable_pct = 100.0 * recoverable / arr.shape[0] / arr.shape[1]
+    else:
+        recoverable = 0
+        recoverable_pct = 0.0
+    
+    metrics['highlights'] = {
+        'fully_clipped_pixels': int(fully_clipped),
+        'fully_clipped_pct': fully_clipped_pct,
+        'recoverable_pixels': int(recoverable),
+        'recoverable_pct': recoverable_pct,
+        'channel_clipped': channel_clipped,
+    }
+    
+    # ==== 2. Shadow Quality Analysis ====
+    metrics['shadows'] = {}
+    
+    # Define shadow regions by luminance
+    shadow_bins = [
+        ('deep_shadows', (0, 25)),
+        ('dark_shadows', (25, 50)),
+        ('light_shadows', (50, 85)),
+    ]
+    
+    shadow_stats = {}
+    for name, (lo, hi) in shadow_bins:
+        mask = (lum >= lo) & (lum < hi)
+        if np.sum(mask) > 100:  # Need enough pixels
+            shadow_pixels = arr[mask]
+            shadow_stats[name] = {
+                'pixel_count': int(np.sum(mask)),
+                'mean': float(np.mean(shadow_pixels)),
+                'std': float(np.std(shadow_pixels)),
+            }
+    
+    metrics['shadows'] = shadow_stats
+    
+    # ==== 3. Noise Analysis by Luminance Level ====
+    metrics['noise'] = {}
+    
+    # Divide into luminance bins and compute statistics per bin
+    lum_bins = [
+        ('0-25', 0, 25),
+        ('25-50', 25, 50),
+        ('50-85', 50, 85),
+        ('85-128', 85, 128),
+        ('128-170', 128, 170),
+        ('170-200', 170, 200),
+        ('200-230', 200, 230),
+        ('230-255', 230, 255),
+    ]
+    
+    noise_by_lum = {}
+    for name, lo, hi in lum_bins:
+        mask = (lum >= lo) & (lum < hi)
+        if np.sum(mask) > 100:
+            bin_pixels = arr[mask]
+            
+            # Per-channel stats
+            ch_stats = {}
+            for i, ch_name in enumerate(channel_names):
+                ch_pixels = bin_pixels[:, i] if num_channels > 1 else bin_pixels
+                ch_stats[ch_name] = {
+                    'mean': float(np.mean(ch_pixels)),
+                    'std': float(np.std(ch_pixels)),
+                }
+            
+            noise_by_lum[name] = {
+                'pixel_count': int(np.sum(mask)),
+                'mean_lum': float(np.mean(lum[mask])),
+                'channels': ch_stats,
+            }
+    
+    metrics['noise'] = noise_by_lum
+    
+    # ==== 4. Dynamic Range ====
+    metrics['dynamic_range'] = {
+        'min_value': float(np.min(arr)),
+        'max_value': float(np.max(arr)),
+        'mean_value': float(np.mean(arr)),
+        'std_value': float(np.std(arr)),
+    }
+    
+    # ==== 5. Channel Statistics ====
+    metrics['channels'] = {}
+    for i, name in enumerate(channel_names):
+        ch = arr[:,:,i] if num_channels > 1 else arr.flatten()
+        metrics['channels'][name] = {
+            'min': float(np.min(ch)),
+            'max': float(np.max(ch)),
+            'mean': float(np.mean(ch)),
+            'std': float(np.std(ch)),
+        }
+    
+    return metrics
+
+
+def compare_iq_metrics(output_metrics, ref_metrics):
+    """Compare image quality metrics between output and reference."""
+    comparison = {}
+    
+    # Highlight comparison
+    comp = {}
+    for key in ['fully_clipped_pixels', 'fully_clipped_pct', 'recoverable_pixels', 'recoverable_pct']:
+        out_val = output_metrics['highlights'].get(key, 0)
+        ref_val = ref_metrics['highlights'].get(key, 0)
+        comp[key] = {
+            'output': out_val,
+            'reference': ref_val,
+            'diff': out_val - ref_val,
+        }
+    comparison['highlights'] = comp
+    
+    # Shadow noise comparison
+    comp = {}
+    for shadow_name in output_metrics.get('shadows', {}):
+        if shadow_name in ref_metrics.get('shadows', {}):
+            out_std = output_metrics['shadows'][shadow_name].get('std', 0)
+            ref_std = ref_metrics['shadows'][shadow_name].get('std', 0)
+            comp[shadow_name] = {
+                'output_std': out_std,
+                'reference_std': ref_std,
+                'diff': out_std - ref_std,
+            }
+    comparison['shadows'] = comp
+    
+    # Dynamic range comparison
+    comp = {}
+    for key in ['min_value', 'max_value', 'mean_value', 'std_value']:
+        out_val = output_metrics['dynamic_range'].get(key, 0)
+        ref_val = ref_metrics['dynamic_range'].get(key, 0)
+        comp[key] = {
+            'output': out_val,
+            'reference': ref_val,
+            'diff': out_val - ref_val,
+        }
+    comparison['dynamic_range'] = comp
+    
+    return comparison
+
+
 def print_report(metrics, verbose=False):
     """Print a human-readable report."""
     print("\n" + "="*60)
@@ -195,6 +380,8 @@ def main():
     parser.add_argument('--json', help='Output metrics to JSON file')
     parser.add_argument('--keep-output', action='store_true', help='Keep the generated TIFF file')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--iq-metrics', action='store_true', help='Compute image quality metrics (noise, dynamic range, etc.)')
+    parser.add_argument('--iq-json', help='Output IQ metrics to JSON file')
     
     args = parser.parse_args()
     
@@ -245,6 +432,75 @@ def main():
         
         # Print report
         print_report(metrics, args.verbose)
+        
+        # Compute IQ metrics if requested
+        if args.iq_metrics:
+            print("\n" + "="*60)
+            print("IMAGE QUALITY METRICS")
+            print("="*60)
+            
+            # Compute IQ metrics for both output and reference
+            output_iq = compute_iq_metrics(output_arr)
+            ref_iq = compute_iq_metrics(reference_arr)
+            
+            # Compare them
+            iq_comparison = compare_iq_metrics(output_iq, ref_iq)
+            
+            # Print highlight analysis
+            print("\nHighlight Analysis:")
+            print(f"  Fully clipped (all channels):")
+            for key in ['fully_clipped_pixels', 'fully_clipped_pct']:
+                out_val = output_iq['highlights'].get(key, 0)
+                ref_val = ref_iq['highlights'].get(key, 0)
+                diff = out_val - ref_val
+                suffix = '%' if 'pct' in key else 'px'
+                print(f"    {key}: output={out_val:.1f}{suffix}, ref={ref_val:.1f}{suffix}, diff={diff:+.1f}{suffix}")
+            
+            print(f"\n  Recoverable (some channels clipped):")
+            out_val = output_iq['highlights'].get('recoverable_pixels', 0)
+            ref_val = ref_iq['highlights'].get('recoverable_pixels', 0)
+            print(f"    output={out_val}px ({output_iq['highlights'].get('recoverable_pct', 0):.2f}%), ref={ref_val}px ({ref_iq['highlights'].get('recoverable_pct', 0):.2f}%)")
+            
+            # Per-channel clipping
+            print(f"\n  Per-channel clipping:")
+            for ch in ['R', 'G', 'B']:
+                out_pct = output_iq['highlights']['channel_clipped'].get(ch, {}).get('clipped_pct', 0)
+                ref_pct = ref_iq['highlights']['channel_clipped'].get(ch, {}).get('clipped_pct', 0)
+                print(f"    {ch}: output={out_pct:.3f}%, ref={ref_pct:.3f}%, diff={out_pct-ref_pct:+.3f}%")
+            
+            # Shadow noise analysis
+            print("\nShadow Noise Analysis:")
+            for shadow_name in output_iq.get('shadows', {}):
+                if shadow_name in ref_iq.get('shadows', {}):
+                    out_std = output_iq['shadows'][shadow_name].get('std', 0)
+                    ref_std = ref_iq['shadows'][shadow_name].get('std', 0)
+                    out_mean = output_iq['shadows'][shadow_name].get('mean', 0)
+                    ref_mean = ref_iq['shadows'][shadow_name].get('mean', 0)
+                    # SNR (signal-to-noise ratio approximation)
+                    out_snr = out_mean / out_std if out_std > 0 else float('inf')
+                    ref_snr = ref_mean / ref_std if ref_std > 0 else float('inf')
+                    print(f"  {shadow_name}:")
+                    print(f"    output: mean={out_mean:.2f}, std={out_std:.2f}, SNR={out_snr:.1f}")
+                    print(f"    reference: mean={ref_mean:.2f}, std={ref_std:.2f}, SNR={ref_snr:.1f}")
+                    print(f"    diff: std={out_std-ref_std:+.2f}, SNR={out_snr-ref_snr:+.1f}")
+            
+            # Dynamic range
+            print("\nDynamic Range:")
+            for key in ['min_value', 'max_value', 'mean_value', 'std_value']:
+                out_val = output_iq['dynamic_range'].get(key, 0)
+                ref_val = ref_iq['dynamic_range'].get(key, 0)
+                print(f"  {key}: output={out_val:.2f}, ref={ref_val:.2f}, diff={out_val-ref_val:+.2f}")
+            
+            # Save IQ metrics to JSON if requested
+            if args.iq_json:
+                iq_data = {
+                    'output': output_iq,
+                    'reference': ref_iq,
+                    'comparison': iq_comparison
+                }
+                with open(args.iq_json, 'w') as f:
+                    json.dump(iq_data, f, indent=2)
+                print(f"\nIQ metrics saved to: {args.iq_json}")
         
         # Save JSON if requested
         if args.json:
