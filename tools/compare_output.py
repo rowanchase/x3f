@@ -291,6 +291,112 @@ def compute_iq_metrics(arr):
             'std': float(np.std(ch)),
         }
     
+    # ==== 6. Sharpness / Edge Response Analysis ====
+    metrics['sharpness'] = {}
+    if num_channels == 3:
+        # Convert to grayscale for sharpness analysis
+        gray = 0.299 * arr[:,:,0] + 0.587 * arr[:,:,1] + 0.114 * arr[:,:,2]
+        gray = gray.astype(np.float64)
+        
+        # Simplified gradient-based sharpness (using numpy roll for efficiency)
+        # Horizontal gradient
+        grad_x = np.abs(np.roll(gray, -1, axis=1) - gray)
+        grad_x[:, -1] = 0  # zero the edge
+        # Vertical gradient
+        grad_y = np.abs(np.roll(gray, -1, axis=0) - gray)
+        grad_y[-1, :] = 0  # zero the edge
+        
+        gradient_magnitude = np.sqrt(grad_x**2 + grad_y**2)
+        
+        metrics['sharpness'] = {
+            'mean_gradient': float(np.mean(gradient_magnitude)),
+            'max_gradient': float(np.max(gradient_magnitude)),
+            'std_gradient': float(np.std(gradient_magnitude)),
+            'pct_high_gradient': float(100.0 * np.sum(gradient_magnitude > 20) / gradient_magnitude.size),
+        }
+    
+    # ==== 7. Local Contrast Analysis (simplified - block-based) ====
+    metrics['local_contrast'] = {}
+    if num_channels == 3:
+        # Use larger blocks for efficiency (64x64 blocks)
+        block_size = 64
+        
+        # Compute statistics on blocks
+        h_blocks = lum.shape[0] // block_size
+        w_blocks = lum.shape[1] // block_size
+        
+        block_means = []
+        block_stds = []
+        block_lums = []
+        
+        for i in range(h_blocks):
+            for j in range(w_blocks):
+                block = lum[i*block_size:(i+1)*block_size, j*block_size:(j+1)*block_size]
+                block_means.append(np.mean(block))
+                block_stds.append(np.std(block))
+                block_lums.append(np.mean(block))
+        
+        block_means = np.array(block_means)
+        block_stds = np.array(block_stds)
+        block_lums = np.array(block_lums)
+        
+        # Local contrast = std / mean
+        with np.errstate(divide='ignore', invalid='ignore'):
+            local_contrast = block_stds / (block_means + 1e-6)
+            local_contrast = np.nan_to_num(local_contrast)
+        
+        # Find which blocks are in shadow/midtone/highlight
+        shadow_mask = block_lums < 50
+        midtone_mask = (block_lums >= 50) & (block_lums < 200)
+        highlight_mask = block_lums >= 200
+        
+        metrics['local_contrast'] = {
+            'mean_local_contrast': float(np.mean(local_contrast)),
+            'std_local_contrast': float(np.std(local_contrast)),
+            'shadow_contrast': float(np.mean(local_contrast[shadow_mask])) if np.any(shadow_mask) else 0.0,
+            'midtone_contrast': float(np.mean(local_contrast[midtone_mask])) if np.any(midtone_mask) else 0.0,
+            'highlight_contrast': float(np.mean(local_contrast[highlight_mask])) if np.any(highlight_mask) else 0.0,
+        }
+    
+    # ==== 8. Color Analysis (saturation, hue) ====
+    metrics['color'] = {}
+    if num_channels == 3:
+        # Saturation: max - min normalized
+        rgb_min = np.min(arr, axis=2)
+        rgb_max = np.max(arr, axis=2)
+        saturation = (rgb_max - rgb_min) / (rgb_max + 1e-6)
+        
+        # Simple hue estimation using channel ratios
+        # R-dominant, G-dominant, B-dominant regions
+        r_dominant = (arr[:,:,0] > arr[:,:,1]) & (arr[:,:,0] > arr[:,:,2])
+        g_dominant = (arr[:,:,1] > arr[:,:,0]) & (arr[:,:,1] > arr[:,:,2])
+        b_dominant = (arr[:,:,2] > arr[:,:,0]) & (arr[:,:,2] > arr[:,:,1])
+        
+        metrics['color'] = {
+            'mean_saturation': float(np.mean(saturation)),
+            'std_saturation': float(np.std(saturation)),
+            'r_dominant_pct': float(100.0 * np.sum(r_dominant) / r_dominant.size),
+            'g_dominant_pct': float(100.0 * np.sum(g_dominant) / g_dominant.size),
+            'b_dominant_pct': float(100.0 * np.sum(b_dominant) / b_dominant.size),
+        }
+        
+        # Channel correlation (R-G, G-B, R-B)
+        r, g, b = arr[:,:,0].flatten(), arr[:,:,1].flatten(), arr[:,:,2].flatten()
+        metrics['color']['rg_correlation'] = float(np.corrcoef(r, g)[0,1])
+        metrics['color']['gb_correlation'] = float(np.corrcoef(g, b)[0,1])
+        metrics['color']['rb_correlation'] = float(np.corrcoef(r, b)[0,1])
+    
+    # ==== 9. Histogram Analysis ====
+    metrics['histogram'] = {}
+    if num_channels == 3:
+        for i, name in enumerate(channel_names):
+            ch = arr[:,:,i]
+            h, _ = np.histogram(ch, bins=256, range=(0, 256))
+            metrics['histogram'][name] = h.tolist()
+    else:
+        h, _ = np.histogram(arr, bins=256, range=(0, 256))
+        metrics['histogram']['gray'] = h.tolist()
+    
     return metrics
 
 
@@ -334,6 +440,45 @@ def compare_iq_metrics(output_metrics, ref_metrics):
             'diff': out_val - ref_val,
         }
     comparison['dynamic_range'] = comp
+    
+    # Sharpness comparison
+    if 'sharpness' in output_metrics and 'sharpness' in ref_metrics:
+        comp = {}
+        for key in ['mean_gradient', 'max_gradient', 'std_gradient', 'pct_high_gradient']:
+            out_val = output_metrics['sharpness'].get(key, 0)
+            ref_val = ref_metrics['sharpness'].get(key, 0)
+            comp[key] = {
+                'output': out_val,
+                'reference': ref_val,
+                'diff': out_val - ref_val,
+            }
+        comparison['sharpness'] = comp
+    
+    # Local contrast comparison
+    if 'local_contrast' in output_metrics and 'local_contrast' in ref_metrics:
+        comp = {}
+        for key in ['mean_local_contrast', 'std_local_contrast', 'shadow_contrast', 'midtone_contrast', 'highlight_contrast']:
+            out_val = output_metrics['local_contrast'].get(key, 0)
+            ref_val = ref_metrics['local_contrast'].get(key, 0)
+            comp[key] = {
+                'output': out_val,
+                'reference': ref_val,
+                'diff': out_val - ref_val,
+            }
+        comparison['local_contrast'] = comp
+    
+    # Color comparison
+    if 'color' in output_metrics and 'color' in ref_metrics:
+        comp = {}
+        for key in ['mean_saturation', 'std_saturation', 'rg_correlation', 'gb_correlation', 'rb_correlation']:
+            out_val = output_metrics['color'].get(key, 0)
+            ref_val = ref_metrics['color'].get(key, 0)
+            comp[key] = {
+                'output': out_val,
+                'reference': ref_val,
+                'diff': out_val - ref_val,
+            }
+        comparison['color'] = comp
     
     return comparison
 
@@ -490,6 +635,45 @@ def main():
                 out_val = output_iq['dynamic_range'].get(key, 0)
                 ref_val = ref_iq['dynamic_range'].get(key, 0)
                 print(f"  {key}: output={out_val:.2f}, ref={ref_val:.2f}, diff={out_val-ref_val:+.2f}")
+            
+            # Sharpness analysis
+            if 'sharpness' in output_iq and 'sharpness' in ref_iq:
+                print("\nSharpness / Edge Response:")
+                for key in ['mean_gradient', 'max_gradient', 'std_gradient', 'pct_high_gradient']:
+                    out_val = output_iq['sharpness'].get(key, 0)
+                    ref_val = ref_iq['sharpness'].get(key, 0)
+                    suffix = '%' if 'pct' in key else ''
+                    print(f"  {key}: output={out_val:.2f}{suffix}, ref={ref_val:.2f}{suffix}, diff={out_val-ref_val:+.2f}{suffix}")
+            
+            # Local contrast analysis
+            if 'local_contrast' in output_iq and 'local_contrast' in ref_iq:
+                print("\nLocal Contrast:")
+                for key in ['mean_local_contrast', 'shadow_contrast', 'midtone_contrast', 'highlight_contrast']:
+                    out_val = output_iq['local_contrast'].get(key, 0)
+                    ref_val = ref_iq['local_contrast'].get(key, 0)
+                    print(f"  {key}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
+            
+            # Color analysis
+            if 'color' in output_iq and 'color' in ref_iq:
+                print("\nColor Analysis:")
+                for key in ['mean_saturation', 'std_saturation']:
+                    out_val = output_iq['color'].get(key, 0)
+                    ref_val = ref_iq['color'].get(key, 0)
+                    print(f"  {key}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
+                
+                print("\n  Channel Dominance:")
+                for ch in ['r', 'g', 'b']:
+                    key = f'{ch}_dominant_pct'
+                    out_val = output_iq['color'].get(key, 0)
+                    ref_val = ref_iq['color'].get(key, 0)
+                    print(f"    {ch.upper()}-dominant: output={out_val:.2f}%, ref={ref_val:.2f}%, diff={out_val-ref_val:+.2f}%")
+                
+                print("\n  Channel Correlations:")
+                for corr in ['rg', 'gb', 'rb']:
+                    key = f'{corr}_correlation'
+                    out_val = output_iq['color'].get(key, 0)
+                    ref_val = ref_iq['color'].get(key, 0)
+                    print(f"    {corr.upper()}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
             
             # Save IQ metrics to JSON if requested
             if args.iq_json:

@@ -426,3 +426,93 @@ Next Steps:
 ## Notes Location
 - Daily journal: `notes/DD-MM-YYYY.md`
 - Progress tracking: `notes/progress.md` (this file)
+
+---
+
+## 2026-02-25: Image Quality Metrics Analysis (commit 821e177)
+
+Enhanced `tools/compare_output.py` with IQ metrics beyond RMSE:
+- Shadow noise analysis (std dev, SNR per luminance bin)
+- Highlight headroom measurement (clipped percentages, recoverable highlights)
+- Dynamic range comparison
+
+### Key Finding: Shadow Noise Difference
+
+**SPP applies extremely aggressive noise reduction in shadows:**
+
+| Region | Our Noise (σ) | SPP Noise (σ) | Ratio |
+|--------|---------------|---------------|-------|
+| Deep shadows (0-25) | 13-14 | 1.7-2.0 | 6-8x |
+| Dark shadows (25-50) | 13-14 | 7.1-7.2 | ~2x |
+
+Our shadow SNR: ~1.1, SPP shadow SNR: ~11-13
+
+### Implications
+
+1. **Trade-off identified**: We preserve more shadow detail (but also more noise), SPP smoothness (but loses some detail)
+
+2. **This contributes to RMSE**: The shadow noise difference accounts for part of the RMSE, but represents a deliberate aesthetic choice
+
+3. **Could match SPP with shadow smoothing**: If exact SPP matching is desired, could add ISO-dependent shadow noise reduction
+
+4. **Highlight clipping**: SPP clips highlights more aggressively (0.6-27% vs our 0.5-19% depending on image)
+
+### Command to Use
+
+```bash
+python3 tools/compare_output.py <x3f> <ref_tiff> --iq-metrics
+```
+
+---
+
+## Enhanced IQ Metrics Results (2026-02-25)
+
+Added comprehensive IQ measurements to compare_output.py:
+- Sharpness/edge response (gradient magnitude)
+- Local contrast (block-based)
+- Color analysis (saturation, channel dominance, correlations)
+
+### Key Findings from New Metrics
+
+#### 1. Sharpness - SPP Applies Aggressive Sharpening
+
+| File | Our Mean Gradient | SPP Mean Gradient | Diff |
+|------|------------------|-------------------|------|
+| 0927 | 6.04 | 8.78 | -31% |
+| 0993 | 5.58 | 8.28 | -33% |
+
+- SPP has **3x more high-gradient pixels** (edges): 7.6% vs 2.4% (0927)
+- SPP's sharpening accounts for much of the visual "pop" in their output
+
+#### 2. Local Contrast - SPP Has Higher Contrast
+
+| File | Our Local Contrast | SPP Local Contrast | Diff |
+|------|-------------------|-------------------|------|
+| 0927 | 0.177 | 0.209 | -15% |
+| 0993 | 0.152 | 0.182 | -16% |
+
+#### 3. Color - Significant Channel Balance Differences
+
+**Channel Dominance (0927):**
+- R-dominant: 30.1% vs 33.7% (SPP more red)
+- **G-dominant: 42.5% vs 20.8%** (SPP much less green!)
+- B-dominant: 22.7% vs 29.4% (SPP more blue)
+
+**Channel Correlations:**
+- RG: 0.92 vs 0.99 (SPP more correlated)
+- GB: 0.76 vs 0.94 (SPP much more correlated!)
+- RB: 0.87 vs 0.94 (SPP more correlated)
+
+The **G-B channel correlation** difference (0.76 vs 0.94) is the most significant - SPP processes green and blue channels together much more tightly.
+
+### Implications
+
+1. **SPP sharpening is significant** - accounts for 30% higher gradients
+2. **SPP has different color balance** - much lower G-dominant percentage
+3. **Channel processing is tighter in SPP** - higher correlations between channels
+
+### Possible Next Steps
+
+1. Investigate the G-dominant discrepancy - is this a color matrix issue?
+2. The G-B correlation difference suggests different color processing
+3. Could add sharpening to match SPP's edge response
