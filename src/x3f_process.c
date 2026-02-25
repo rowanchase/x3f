@@ -874,21 +874,17 @@ static int convert_data(x3f_t *x3f,
             output[color] *= spp_exposure_comp;
         }
 
-        /* Green cast correction: reduce green channel slightly
-           Analysis shows our output has consistent +2 to +4 mean error on green channel
-           compared to SPP reference. Apply small reduction to correct. */
+        /* Green cast correction: reduce green channel more significantly
+           Analysis shows G-dominant is 35% vs target 21% - need stronger reduction.
+           Blue boost to increase B-dominant towards 29% target.
+           Also boost R slightly more to compensate for reduced overall brightness. */
         {
-          double green_correction = 0.96;
+          double green_correction = 0.91;
+          double b_correction = 1.08;
+          double r_correction = 1.06;
           output[1] *= green_correction;
-        }
-
-        /* R and B channel boost: R-only 1.03 boost
-           Testing showed R-only boost is optimal; B boost makes results worse */
-        {
-          double r_correction = 1.03;
-          double b_correction = 1.0;
-          output[0] *= r_correction;
           output[2] *= b_correction;
+          output[0] *= r_correction;
         }
 
         /* Shadow desaturation: reduce saturation in dark areas
@@ -944,6 +940,17 @@ static int convert_data(x3f_t *x3f,
               double diff = max_channel - output[color];
               output[color] += diff * desat_factor * 0.8;
             }
+          }
+        }
+
+        /* Global desaturation: SPP has much lower saturation (0.09 vs 0.21)
+           Apply stronger global desaturation to reduce oversaturation.
+           This also helps reduce the G-dominant percentage. */
+        {
+          double gray = (output[0] + output[1] + output[2]) / 3.0;
+          double desat_factor = 0.65;
+          for (color = 0; color < 3; color++) {
+            output[color] = gray + (output[color] - gray) * desat_factor;
           }
         }
 
