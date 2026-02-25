@@ -61,11 +61,12 @@ static void reconstruct_highlight_channels(double *input, double *output,
                                            double hl_blending_high)
 {
   int color;
-  (void)hl_blending_low;
-  (void)hl_blending_high;
 
   for (color = 0; color < 3; color++)
     output[color] = input[color];
+
+  (void)hl_blending_low;
+  (void)hl_blending_high;
 }
 
 static int get_black_level(x3f_t *x3f,
@@ -714,7 +715,7 @@ static int preprocess_data(x3f_t *x3f, int fix_bad, char *wb, x3f_image_levels_t
 
 static int get_conv(x3f_t *x3f, x3f_color_encoding_t encoding, char *wb,
 		    int lutsize, uint16_t max_out, double *lut,
-		    double *conv_matrix)
+		    double *conv_matrix, double highlight_threshold)
 {
   double raw_to_xyz[9];	/* White point for XYZ is assumed to be D65 */
   double xyz_to_rgb[9];
@@ -746,7 +747,7 @@ static int get_conv(x3f_t *x3f, x3f_color_encoding_t encoding, char *wb,
 
   switch (encoding) {
   case SRGB:
-    x3f_sRGB_sigmoid_LUT(lut, lutsize, max_out, tc_steepness);
+    x3f_sRGB_sigmoid_LUT(lut, lutsize, max_out, tc_steepness, highlight_threshold);
     x3f_XYZ_to_sRGB(xyz_to_rgb);
     break;
   case ARGB:
@@ -800,9 +801,18 @@ static int convert_data(x3f_t *x3f,
   x3f_spatial_gain_corr_t sgain[MAXCORR];
   int sgain_num;
 
+  double hl_blending_low, hl_blending_high, hl_restore_thresh;
+  double hl_chan_thresh1, hl_chan_thresh2, hl_sat_factor;
+
+  x3f_get_highlight_params(x3f,
+                           &hl_blending_low, &hl_blending_high, &hl_restore_thresh,
+                           &hl_chan_thresh1, &hl_chan_thresh2, &hl_sat_factor);
+
+  double highlight_threshold = 0.95;
+
   if (image->channels < 3) return 0;
 
-  if (!get_conv(x3f, encoding, wb, LUTSIZE, max_out, lut, conv_matrix))
+  if (!get_conv(x3f, encoding, wb, LUTSIZE, max_out, lut, conv_matrix, highlight_threshold))
     return 0;
   
   if (capture_iso > 100) {
@@ -1100,11 +1110,20 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
   x3f_spatial_gain_corr_t sgain[MAXCORR];
   int sgain_num;
 
+  double hl_blending_low, hl_blending_high, hl_restore_thresh;
+  double hl_chan_thresh1, hl_chan_thresh2, hl_sat_factor;
+
+  x3f_get_highlight_params(x3f,
+                           &hl_blending_low, &hl_blending_high, &hl_restore_thresh,
+                           &hl_chan_thresh1, &hl_chan_thresh2, &hl_sat_factor);
+
+  double highlight_threshold = 0.95;
+
   int reduction, reduction2;
 
   if (image->channels < 3) return 0;
 
-  if (!get_conv(x3f, encoding, wb, LUTSIZE, max_out, lut, conv_matrix))
+  if (!get_conv(x3f, encoding, wb, LUTSIZE, max_out, lut, conv_matrix, highlight_threshold))
     return 0;
 
   if (apply_sgain) {

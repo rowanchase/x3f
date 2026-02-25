@@ -364,6 +364,25 @@ Current Status:
   - Threshold 0.80: No significant change (RMSE 17.83)
   - Old highlight desaturation disabled: RMSE worsened to 35.2 (confirms old code is essential)
 
+#### Phase 2/3 Full Testing (2026-02-25)
+
+**Testing Results**:
+- Implemented and verified channel reconstruction with debug output
+- Function called and made changes (e.g., R raised from 0.78 to 1.02 in highlights)
+- RMSE unchanged (17.83 for file 0936)
+- Root cause: Existing post-conversion highlight desaturation already handles highlights well
+
+**Phase 3 Attempt - Soft Knee Tuning**:
+- Made `x3f_sRGB_sigmoid_LUT` tunable with highlight_threshold parameter
+- Tested using CAMF hl_blending_low (0.75) as threshold
+- CAMF values don't map to LUT data range - no improvement
+
+**Key Findings**:
+1. Pre-conversion channel reconstruction doesn't improve RMSE
+2. CAMF highlight parameters (0.75, 1.5) are for 14-bit sensor data range
+3. Current highlight handling is already good: highlight MAE (11.80) < midtones MAE (15.08)
+4. Infrastructure in place for future enhancement (CAMF reading, CLI flags, tunable functions)
+
 Key Finding:
 - The existing highlight desaturation (threshold 0.6, at output color space) is critical
 - Any reconstruction at the raw RGB level must work IN CONJUNCTION with it

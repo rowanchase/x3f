@@ -290,12 +290,11 @@ static double highlight_rolloff(double x, double threshold, double max_output)
   return compressed * max_output;
 }
 
-void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness)
+void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness, double highlight_threshold)
 {
   double a = 0.055;
   double thres = 0.0031308;
   double sig_min, sig_max;
-  double highlight_threshold = 0.95;
   int i;
 
   sig_min = 1.0 / (1.0 + exp(steepness * 0.5));
