@@ -198,12 +198,6 @@ int main(int argc, char *argv[])
   int compress = 0;
   int use_opencl = 0;
   char *outdir = NULL;
-  double hl_blending_low = 0.0;
-  double hl_blending_high = 0.0;
-  double hl_restore_thresh = 0.0;
-  double hl_chan_thresh1 = 0.0;
-  double hl_chan_thresh2 = 0.0;
-  double hl_sat_factor = 0.0;
   x3f_return_t ret;
 
   int i;
@@ -277,18 +271,6 @@ int main(int argc, char *argv[])
       compress = 1;
     else if (!strcmp(argv[i], "-ocl"))
       use_opencl = 1;
-    else if ((!strcmp(argv[i], "-hl-blending-low")) && (i+1)<argc)
-      hl_blending_low = atof(argv[++i]);
-    else if ((!strcmp(argv[i], "-hl-blending-high")) && (i+1)<argc)
-      hl_blending_high = atof(argv[++i]);
-    else if ((!strcmp(argv[i], "-hl-restore-thresh")) && (i+1)<argc)
-      hl_restore_thresh = atof(argv[++i]);
-    else if ((!strcmp(argv[i], "-hl-chan-thresh1")) && (i+1)<argc)
-      hl_chan_thresh1 = atof(argv[++i]);
-    else if ((!strcmp(argv[i], "-hl-chan-thresh2")) && (i+1)<argc)
-      hl_chan_thresh2 = atof(argv[++i]);
-    else if ((!strcmp(argv[i], "-hl-sat-factor")) && (i+1)<argc)
-      hl_sat_factor = atof(argv[++i]);
 
   /* Strange Stuff */
     else if ((!strcmp(argv[i], "-offset")) && (i+1)<argc)
