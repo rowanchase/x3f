@@ -8,3 +8,4 @@ a.out
 venv/
 x3f_test_files/
 reference_files
+tools/__pycache__
