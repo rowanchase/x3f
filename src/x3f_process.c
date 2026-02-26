@@ -876,16 +876,28 @@ static int convert_data(x3f_t *x3f,
         }
 
         /* Green cast correction: reduce green channel more significantly
-           Analysis shows G-dominant is 35% vs target 21% - need stronger reduction.
-           Blue boost to increase B-dominant towards 29% target.
-           Also boost R slightly more to compensate for reduced overall brightness. */
+            Analysis shows a-channel (green-magenta) DeltaE error is ~54 mean.
+            Need stronger green reduction to match SPP's muted colors.
+            Blue boost to increase B-dominant towards 29% target.
+            Also boost R slightly more to compensate for reduced overall brightness. */
         {
-          double green_correction = 0.91;
-          double b_correction = 1.08;
-          double r_correction = 1.06;
+          double green_correction = 0.85;
+          double b_correction = 1.10;
+          double r_correction = 1.08;
           output[1] *= green_correction;
           output[2] *= b_correction;
           output[0] *= r_correction;
+        }
+
+        /* Global desaturation: SPP applies film-like desaturation
+            Target midtones specifically where DeltaE is worst (105 vs shadows 45).
+            Reduce saturation uniformly to bring colors closer to SPP reference. */
+        {
+          double gray = (output[0] + output[1] + output[2]) / 3.0;
+          double desat_factor = 0.70;
+          for (color = 0; color < 3; color++) {
+            output[color] = gray + (output[color] - gray) * desat_factor;
+          }
         }
 
         /* Shadow desaturation: reduce saturation in dark areas
