@@ -678,3 +678,43 @@ ICC profiles MATCH!
 
 ### Commit
 - `33dc5e7`: Embed Adobe RGB ICC profile in TIFF output
+
+---
+
+## 2026-02-26: DeltaE Perceptual Color Metrics
+
+### Problem
+Saturation metrics (HSL-based) were misleading - visually undersaturated output had similar/higher saturation values than SPP reference. Needed perceptual color accuracy metric.
+
+### Solution
+Added DeltaE (CIELAB color difference) to compare_output.py:
+- RGB → linear → XYZ → Lab conversion
+- DeltaE1976 calculation per pixel
+- Per-channel Lab error analysis (L, a, b)
+- Regional DeltaE (shadows/midtones/highlights)
+- Per-pixel random sampling with full RGB/Lab values
+
+### Key Finding from DeltaE Analysis
+**The 'a' channel (green-magenta axis) has massive errors (mean=53.83, max=907.14)**:
+- This explains the green cast issue
+- Midtones are worst (mean DeltaE 105.26 vs shadows 45.09)
+- This is the primary color accuracy issue to address
+
+### Metrics Comparison
+| Metric | What it measures | Useful for |
+|--------|-----------------|------------|
+| RMSE | Raw pixel difference | General accuracy |
+| DeltaE | Perceptual color difference | **Color accuracy** |
+| Saturation | (max-min)/max | NOT useful |
+
+DeltaE > 20 = visually different colors. Our mean DeltaE ~82 indicates significant color inaccuracy.
+
+### Command
+```bash
+python3 tools/compare_output.py <x3f> <ref_tiff> --delta-e --num-samples 50
+```
+
+DeltaE is now enabled by default. Use `--no-delta-e` to disable.
+
+### Commit
+- `4e2020b`: Add DeltaE perceptual color metrics to comparison tool
