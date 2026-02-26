@@ -879,11 +879,12 @@ static int convert_data(x3f_t *x3f,
             Analysis shows a-channel (green-magenta) DeltaE error is ~54 mean.
             Need stronger green reduction to match SPP's muted colors.
             Blue boost to increase B-dominant towards 29% target.
-            Also boost R slightly more to compensate for reduced overall brightness. */
+            Also boost R slightly more to compensate for reduced overall brightness.
+            Try boosting R and B more relative to G to reduce a-channel error. */
         {
-          double green_correction = 0.85;
-          double b_correction = 1.10;
-          double r_correction = 1.08;
+          double green_correction = 0.895;
+          double b_correction = 1.19;
+          double r_correction = 1.17;
           output[1] *= green_correction;
           output[2] *= b_correction;
           output[0] *= r_correction;
@@ -894,7 +895,7 @@ static int convert_data(x3f_t *x3f,
             Reduce saturation uniformly to bring colors closer to SPP reference. */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double desat_factor = 0.70;
+          double desat_factor = 0.62;
           for (color = 0; color < 3; color++) {
             output[color] = gray + (output[color] - gray) * desat_factor;
           }
