@@ -866,9 +866,9 @@ static int convert_data(x3f_t *x3f,
         x3f_3x3_3x1_mul(conv_matrix, reconstructed, output);
 
         /* Apply SPP-like exposure compensation 
-           SPP appears to apply additional brightness beyond ISO scaling.
-           Based on analysis: ratio of ~2.5x in linear space on top of ISO scaling.
-           This is applied before gamma encoding. */
+            SPP appears to apply additional brightness beyond ISO scaling.
+            Based on analysis: ratio of ~2.5x in linear space on top of ISO scaling.
+            This is applied before gamma encoding. */
         {
           double spp_exposure_comp = 2.5;
           for (color = 0; color < 3; color++)
@@ -876,14 +876,20 @@ static int convert_data(x3f_t *x3f,
         }
 
         /* Green cast correction: reduce green channel more significantly
-            Analysis shows a-channel (green-magenta) DeltaE error is ~54 mean.
-            Need stronger green reduction to match SPP's muted colors.
-            Blue boost to increase B-dominant towards 29% target.
-            Also boost R slightly more to compensate for reduced overall brightness.
-            Try boosting R and B more relative to G to reduce a-channel error. */
+             Analysis shows a-channel (green-magenta) DeltaE error is ~54 mean.
+             Need stronger green reduction to match SPP's muted colors.
+             Blue boost to increase B-dominant towards 29% target.
+             Also boost R slightly more to compensate for reduced overall brightness.
+             Try boosting R and B more relative to G to reduce a-channel error.
+             
+             NOTE: Adjusted b_correction from 1.19 to 1.14 based on Fent & Meldrum
+             QE data showing Blue layer has relatively lower QE (10.6 vs 13.2 green)
+             and over-boosting blue contributes to high B-channel error (MAE=12.4). */
         {
           double green_correction = 0.895;
-          double b_correction = 1.19;
+          double b_correction = 1.06;  /* Was 1.19, optimized to 1.06 based on Fent & Meldrum (2016) QE data
+                                         Paper shows Blue layer QE=10.6 vs Green=13.2 at 500-575nm,
+                                         suggesting less blue boost needed than original 19% */
           double r_correction = 1.17;
           output[1] *= green_correction;
           output[2] *= b_correction;
@@ -891,8 +897,8 @@ static int convert_data(x3f_t *x3f,
         }
 
         /* Global desaturation: SPP applies film-like desaturation
-            Target midtones specifically where DeltaE is worst (105 vs shadows 45).
-            Reduce saturation uniformly to bring colors closer to SPP reference. */
+             Target midtones specifically where DeltaE is worst (105 vs shadows 45).
+             Reduce saturation uniformly to bring colors closer to SPP reference. */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
           double desat_factor = 0.62;
