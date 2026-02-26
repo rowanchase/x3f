@@ -15,8 +15,171 @@ import sys
 import os
 import tempfile
 import json
+import random
 from PIL import Image
 import numpy as np
+
+
+D65_ILLUMINANT = np.array([0.95047, 1.0, 1.08883])
+
+
+def srgb_to_linear(arr):
+    mask = arr <= 0.04045
+    linear = np.where(mask, arr / 12.92, np.power((arr + 0.055) / 1.055, 2.4))
+    return linear
+
+
+def linear_to_xyz(arr):
+    r, g, b = arr[:,:,0], arr[:,:,1], arr[:,:,2]
+    x = 0.4124564 * r + 0.3575761 * g + 0.1804375 * b
+    y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b
+    z = 0.0193339 * r + 0.1191920 * g + 0.9503041 * b
+    return np.stack([x, y, z], axis=-1)
+
+
+def xyz_to_lab(xyz):
+    x_r = xyz[:,:,0] / D65_ILLUMINANT[0]
+    y_r = xyz[:,:,1] / D65_ILLUMINANT[1]
+    z_r = xyz[:,:,2] / D65_ILLUMINANT[2]
+    
+    def f(t):
+        delta = 6.0 / 29.0
+        return np.where(t > delta, np.power(t, 1.0/3.0), (29.0**2 * t + 4.0/29.0) / 116.0)
+    
+    f_x = f(x_r)
+    f_y = f(y_r)
+    f_z = f(z_r)
+    
+    L = 116.0 * f_y - 16.0
+    a = 500.0 * (f_x - f_y)
+    b = 200.0 * (f_y - f_z)
+    return np.stack([L, a, b], axis=-1)
+
+
+def rgb_to_lab(arr):
+    normalized = arr / 255.0
+    linear = srgb_to_linear(normalized)
+    xyz = linear_to_xyz(linear)
+    lab = xyz_to_lab(xyz)
+    return lab
+
+
+def compute_delta_e1976(lab1, lab2):
+    dL = lab1[:,:,0] - lab2[:,:,0]
+    da = lab1[:,:,1] - lab2[:,:,1]
+    db = lab1[:,:,2] - lab2[:,:,2]
+    return np.sqrt(dL**2 + da**2 + db**2)
+
+
+def compute_delta_e_by_luminance(output_arr, reference_arr, num_samples=5000):
+    """Compute DeltaE statistics broken down by luminance region."""
+    lab1 = rgb_to_lab(output_arr)
+    lab2 = rgb_to_lab(reference_arr)
+    dE = compute_delta_e1976(lab1, lab2)
+    
+    ref_lum = 0.299 * reference_arr[:,:,0] + 0.587 * reference_arr[:,:,1] + 0.114 * reference_arr[:,:,2]
+    
+    shadows = ref_lum < 85
+    midtones = (ref_lum >= 85) & (ref_lum < 170)
+    highlights = ref_lum >= 170
+    
+    results = {}
+    for name, mask in [('shadows', shadows), ('midtones', midtones), ('highlights', highlights)]:
+        if np.sum(mask) > 0:
+            dE_masked = dE[mask]
+            results[name] = {
+                'pixel_count': int(np.sum(mask)),
+                'mean': float(np.mean(dE_masked)),
+                'std': float(np.std(dE_masked)),
+                'median': float(np.median(dE_masked)),
+                'p95': float(np.percentile(dE_masked, 95)),
+                'p99': float(np.percentile(dE_masked, 99)),
+            }
+    return results
+
+
+def compute_per_pixel_delta_e(output_arr, reference_arr, num_samples=20):
+    """Sample random pixels and compute per-pixel DeltaE."""
+    lab1 = rgb_to_lab(output_arr)
+    lab2 = rgb_to_lab(reference_arr)
+    
+    h, w = output_arr.shape[:2]
+    total_pixels = h * w
+    
+    if num_samples >= total_pixels:
+        indices = list(range(total_pixels))
+    else:
+        indices = random.sample(range(total_pixels), num_samples)
+    
+    samples = []
+    for idx in indices:
+        row = idx // w
+        col = idx % w
+        
+        out_rgb = output_arr[row, col]
+        ref_rgb = reference_arr[row, col]
+        out_lab = lab1[row, col]
+        ref_lab = lab2[row, col]
+        
+        dE = np.sqrt(np.sum((out_lab - ref_lab)**2))
+        
+        samples.append({
+            'row': int(row),
+            'col': int(col),
+            'output_rgb': [float(v) for v in out_rgb],
+            'reference_rgb': [float(v) for v in ref_rgb],
+            'output_lab': [float(v) for v in out_lab],
+            'reference_lab': [float(v) for v in ref_lab],
+            'delta_e': float(dE),
+        })
+    
+    return samples
+
+
+def compute_delta_e_metrics(output_arr, reference_arr):
+    """Compute comprehensive DeltaE-based perceptual color metrics."""
+    lab1 = rgb_to_lab(output_arr)
+    lab2 = rgb_to_lab(reference_arr)
+    
+    dE1976 = compute_delta_e1976(lab1, lab2)
+    
+    L_errors = np.abs(lab1[:,:,0] - lab2[:,:,0])
+    a_errors = np.abs(lab1[:,:,1] - lab2[:,:,1])
+    b_errors = np.abs(lab1[:,:,2] - lab2[:,:,2])
+    
+    metrics = {
+        'DeltaE1976': {
+            'mean': float(np.mean(dE1976)),
+            'std': float(np.std(dE1976)),
+            'max': float(np.max(dE1976)),
+            'median': float(np.median(dE1976)),
+            'p95': float(np.percentile(dE1976, 95)),
+            'p99': float(np.percentile(dE1976, 99)),
+        },
+        'per_channel': {
+            'L': {
+                'mean': float(np.mean(L_errors)),
+                'std': float(np.std(L_errors)),
+                'max': float(np.max(L_errors)),
+                'p95': float(np.percentile(L_errors, 95)),
+            },
+            'a': {
+                'mean': float(np.mean(a_errors)),
+                'std': float(np.std(a_errors)),
+                'max': float(np.max(a_errors)),
+                'p95': float(np.percentile(a_errors, 95)),
+            },
+            'b': {
+                'mean': float(np.mean(b_errors)),
+                'std': float(np.std(b_errors)),
+                'max': float(np.max(b_errors)),
+                'p95': float(np.percentile(b_errors, 95)),
+            },
+        },
+        'by_luminance': compute_delta_e_by_luminance(output_arr, reference_arr),
+    }
+    
+    return metrics
 
 
 def run_x3f_extract(x3f_path, output_path, x3f_extract_path='x3f_extract', 
@@ -561,6 +724,9 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     parser.add_argument('--iq-metrics', action='store_true', help='Compute image quality metrics (noise, dynamic range, etc.)')
     parser.add_argument('--iq-json', help='Output IQ metrics to JSON file')
+    parser.add_argument('--no-delta-e', action='store_true', help='Disable DeltaE perceptual color metrics (enabled by default)')
+    parser.add_argument('--num-samples', type=int, default=20, help='Number of random pixel samples for DeltaE (default: 20)')
+    parser.add_argument('--delta-e-json', help='Output DeltaE metrics to JSON file')
     
     args = parser.parse_args()
     
@@ -640,6 +806,53 @@ def main():
         # Compute metrics
         metrics = compute_metrics(output_arr, reference_arr)
         
+        # Compute DeltaE metrics if requested
+        delta_e_metrics = None
+        if not args.no_delta_e:
+            print("\n" + "="*60)
+            print("PERCEPTUAL COLOR METRICS (DeltaE)")
+            print("="*60)
+            
+            delta_e_metrics = compute_delta_e_metrics(output_arr, reference_arr)
+            
+            print("\nOverall DeltaE1976 (CIE76):")
+            de = delta_e_metrics['DeltaE1976']
+            print(f"  Mean:   {de['mean']:.2f}")
+            print(f"  Std:    {de['std']:.2f}")
+            print(f"  Median: {de['median']:.2f}")
+            print(f"  95th percentile: {de['p95']:.2f}")
+            print(f"  Max:    {de['max']:.2f}")
+            
+            print("\nPer-Channel Lab Errors:")
+            for ch in ['L', 'a', 'b']:
+                ch_err = delta_e_metrics['per_channel'][ch]
+                print(f"  {ch}: mean={ch_err['mean']:.2f}, max={ch_err['max']:.2f}, p95={ch_err['p95']:.2f}")
+            
+            print("\nDeltaE by Luminance Region:")
+            for region, stats in delta_e_metrics['by_luminance'].items():
+                print(f"  {region}: mean={stats['mean']:.2f}, p95={stats['p95']:.2f} ({stats['pixel_count']} pixels)")
+            
+            print("\nPer-Pixel DeltaE Samples:")
+            pixel_samples = compute_per_pixel_delta_e(output_arr, reference_arr, args.num_samples)
+            for i, sample in enumerate(pixel_samples[:10]):
+                print(f"  [{sample['row']:4d}, {sample['col']:4d}] DeltaE={sample['delta_e']:6.2f} | "
+                      f"RGB out=[{sample['output_rgb'][0]:5.1f},{sample['output_rgb'][1]:5.1f},{sample['output_rgb'][2]:5.1f}] "
+                      f"ref=[{sample['reference_rgb'][0]:5.1f},{sample['reference_rgb'][1]:5.1f},{sample['reference_rgb'][2]:5.1f}]")
+            
+            if args.num_samples > 10 and len(pixel_samples) > 10:
+                print(f"  ... and {len(pixel_samples) - 10} more samples")
+            
+            if args.delta_e_json:
+                delta_e_output = {
+                    'metrics': delta_e_metrics,
+                    'sampled_pixels': pixel_samples,
+                }
+                with open(args.delta_e_json, 'w') as f:
+                    json.dump(delta_e_output, f, indent=2)
+                print(f"\nDeltaE metrics saved to: {args.delta_e_json}")
+            
+            metrics['delta_e'] = delta_e_metrics
+        
         # Print report
         print_report(metrics, args.verbose)
         
@@ -718,30 +931,14 @@ def main():
                     ref_val = ref_iq['local_contrast'].get(key, 0)
                     print(f"  {key}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
             
-            # Color analysis
+            # Color analysis (DeltaE is now the primary metric)
             if 'color' in output_iq and 'color' in ref_iq:
-                print("\nColor Analysis:")
-                for key in ['mean_saturation', 'std_saturation', 'mean_chroma', 'mean_colorfulness', 'mean_perceptual_chroma']:
+                print("\nColor Analysis (DeltaE is primary metric - see above):")
+                for key in ['mean_colorfulness', 'mean_perceptual_chroma']:
                     out_val = output_iq['color'].get(key, 0)
                     ref_val = ref_iq['color'].get(key, 0)
-                    suffix = ''
-                    if 'chroma' in key or 'colorfulness' in key:
-                        suffix = ' (absolute)'
+                    suffix = ' (absolute)'
                     print(f"  {key}{suffix}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
-                
-                print("\n  Channel Dominance:")
-                for ch in ['r', 'g', 'b']:
-                    key = f'{ch}_dominant_pct'
-                    out_val = output_iq['color'].get(key, 0)
-                    ref_val = ref_iq['color'].get(key, 0)
-                    print(f"    {ch.upper()}-dominant: output={out_val:.2f}%, ref={ref_val:.2f}%, diff={out_val-ref_val:+.2f}%")
-                
-                print("\n  Channel Correlations:")
-                for corr in ['rg', 'gb', 'rb']:
-                    key = f'{corr}_correlation'
-                    out_val = output_iq['color'].get(key, 0)
-                    ref_val = ref_iq['color'].get(key, 0)
-                    print(f"    {corr.upper()}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
             
             # Save IQ metrics to JSON if requested
             if args.iq_json:
