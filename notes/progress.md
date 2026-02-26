@@ -645,3 +645,36 @@ Desaturation was the right direction - **24/25 files improved**. The average RMS
 2. **Per-ISO tuning**: Different desaturation for ISO 400 vs ISO 200
 3. **Scene-adaptive**: Adjust desaturation based on image statistics
 4. **Focus on ISO 400**: These files need specific improvements
+
+---
+
+## 2026-02-26: ICC Profile Embedding Fix
+
+### Problem
+Output TIFFs were missing ICC profiles, causing color-managed applications to incorrectly interpret colors as sRGB instead of Adobe RGB, resulting in washed-out/grey appearance.
+
+### Analysis
+- SPP reference TIFFs contain 560-byte Adobe RGB (1998) ICC profiles
+- x3f_extract was not embedding any ICC profile in output TIFFs
+- When using `-color AdobeRGB`, output should include the Adobe RGB ICC profile
+
+### Implementation
+Added Adobe RGB ICC profile embedding in `src/x3f_output_tiff.c`:
+1. Extracted 560-byte Adobe RGB ICC profile from SPP reference TIFF
+2. Added `adobe_rgb_profile[]` array (560 bytes) to the source
+3. Added `TIFFSetField()` call to embed ICC when encoding==ARGB
+
+### Results
+- **Output TIFF ICC profile**: 560 bytes (matches SPP)
+- **ICC profiles verified as IDENTICAL** between output and reference
+- Comparison tool now shows ICC profile embedded correctly
+
+### Verification
+```
+Reference TIFF ICC: YES (560 bytes)
+Output TIFF ICC:   YES (560 bytes)
+ICC profiles MATCH!
+```
+
+### Commit
+- `33dc5e7`: Embed Adobe RGB ICC profile in TIFF output

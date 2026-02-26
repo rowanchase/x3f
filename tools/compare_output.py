@@ -76,6 +76,24 @@ def load_tiff(path):
     return arr
 
 
+def check_icc_profile(path):
+    """Check if TIFF has an ICC profile and return info."""
+    img = Image.open(path)
+    icc = img.info.get('icc_profile')
+    if icc:
+        # Try to detect color space from ICC profile
+        # Adobe RGB profiles start with specific bytes
+        is_adobe = icc[:4] == b'ADBE' or b'Adobe RGB' in icc[:100]
+        is_srgb = b'sRGB' in icc[:40] or b'sRGB IEC61966' in icc[:60]
+        return {
+            'has_icc': True,
+            'size': len(icc),
+            'is_adobe_rgb': is_adobe,
+            'is_srgb': is_srgb,
+        }
+    return {'has_icc': False, 'size': 0, 'is_adobe_rgb': False, 'is_srgb': False}
+
+
 def compute_metrics(output_arr, reference_arr):
     """Compute comparison metrics between output and reference."""
     # Handle transposed images (some SPP outputs are rotated)
@@ -361,10 +379,23 @@ def compute_iq_metrics(arr):
     # ==== 8. Color Analysis (saturation, hue) ====
     metrics['color'] = {}
     if num_channels == 3:
-        # Saturation: max - min normalized
+        # Saturation: max - min normalized (HSL saturation)
         rgb_min = np.min(arr, axis=2)
         rgb_max = np.max(arr, axis=2)
         saturation = (rgb_max - rgb_min) / (rgb_max + 1e-6)
+        
+        # Chroma: absolute difference (not normalized by brightness)
+        # This is more perceptually relevant than normalized saturation
+        chroma = rgb_max - rgb_min
+        
+        # Colorfulness: RMS of channel differences
+        # Another perceptually-relevant metric
+        r, g, b = arr[:,:,0], arr[:,:,1], arr[:,:,2]
+        colorfulness = np.sqrt((r-g)**2 + (r-b)**2 + (g-b)**2)
+        
+        # Perceptual chroma: distance from neutral gray
+        gray = (r + g + b) / 3.0
+        perceptual_chroma = np.sqrt((r-gray)**2 + (g-gray)**2 + (b-gray)**2)
         
         # Simple hue estimation using channel ratios
         # R-dominant, G-dominant, B-dominant regions
@@ -375,6 +406,9 @@ def compute_iq_metrics(arr):
         metrics['color'] = {
             'mean_saturation': float(np.mean(saturation)),
             'std_saturation': float(np.std(saturation)),
+            'mean_chroma': float(np.mean(chroma)),
+            'mean_colorfulness': float(np.mean(colorfulness)),
+            'mean_perceptual_chroma': float(np.mean(perceptual_chroma)),
             'r_dominant_pct': float(100.0 * np.sum(r_dominant) / r_dominant.size),
             'g_dominant_pct': float(100.0 * np.sum(g_dominant) / g_dominant.size),
             'b_dominant_pct': float(100.0 * np.sum(b_dominant) / b_dominant.size),
@@ -470,7 +504,7 @@ def compare_iq_metrics(output_metrics, ref_metrics):
     # Color comparison
     if 'color' in output_metrics and 'color' in ref_metrics:
         comp = {}
-        for key in ['mean_saturation', 'std_saturation', 'rg_correlation', 'gb_correlation', 'rb_correlation']:
+        for key in ['mean_saturation', 'std_saturation', 'mean_chroma', 'mean_colorfulness', 'mean_perceptual_chroma', 'rg_correlation', 'gb_correlation', 'rb_correlation']:
             out_val = output_metrics['color'].get(key, 0)
             ref_val = ref_metrics['color'].get(key, 0)
             comp[key] = {
@@ -572,6 +606,37 @@ def main():
         reference_arr = load_tiff(args.reference_tiff)
         print(f"Reference shape: {reference_arr.shape}, dtype: {reference_arr.dtype}")
         
+        # Check ICC profiles
+        print("\n--- ICC Profile Analysis ---")
+        output_icc = check_icc_profile(output_tiff)
+        ref_icc = check_icc_profile(args.reference_tiff)
+        
+        print(f"Output TIFF ICC: {'YES' if output_icc['has_icc'] else 'NO'}")
+        if output_icc['has_icc']:
+            if output_icc['is_srgb']:
+                print(f"  -> Detected: sRGB")
+            elif output_icc['is_adobe_rgb']:
+                print(f"  -> Detected: Adobe RGB")
+            else:
+                print(f"  -> Unknown profile ({output_icc['size']} bytes)")
+        
+        print(f"Reference TIFF ICC: {'YES' if ref_icc['has_icc'] else 'NO'}")
+        if ref_icc['has_icc']:
+            if ref_icc['is_srgb']:
+                print(f"  -> Detected: sRGB")
+            elif ref_icc['is_adobe_rgb']:
+                print(f"  -> Detected: Adobe RGB")
+            else:
+                print(f"  -> Unknown profile ({ref_icc['size']} bytes)")
+        
+        if output_icc['has_icc'] != ref_icc['has_icc']:
+            print("\n*** WARNING: ICC profile mismatch! ***")
+            print("This can cause significant color differences when viewed.")
+        elif output_icc['has_icc'] and ref_icc['has_icc']:
+            if output_icc['is_adobe_rgb'] != ref_icc['is_adobe_rgb']:
+                print("\n*** WARNING: Different color spaces! ***")
+        print("--- End ICC Analysis ---\n")
+        
         # Compute metrics
         metrics = compute_metrics(output_arr, reference_arr)
         
@@ -656,10 +721,13 @@ def main():
             # Color analysis
             if 'color' in output_iq and 'color' in ref_iq:
                 print("\nColor Analysis:")
-                for key in ['mean_saturation', 'std_saturation']:
+                for key in ['mean_saturation', 'std_saturation', 'mean_chroma', 'mean_colorfulness', 'mean_perceptual_chroma']:
                     out_val = output_iq['color'].get(key, 0)
                     ref_val = ref_iq['color'].get(key, 0)
-                    print(f"  {key}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
+                    suffix = ''
+                    if 'chroma' in key or 'colorfulness' in key:
+                        suffix = ' (absolute)'
+                    print(f"  {key}{suffix}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
                 
                 print("\n  Channel Dominance:")
                 for ch in ['r', 'g', 'b']:
