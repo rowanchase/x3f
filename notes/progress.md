@@ -516,3 +516,132 @@ The **G-B channel correlation** difference (0.76 vs 0.94) is the most significan
 1. Investigate the G-dominant discrepancy - is this a color matrix issue?
 2. The G-B correlation difference suggests different color processing
 3. Could add sharpening to match SPP's edge response
+
+---
+
+## 2026-02-25: Global Desaturation Implementation (commit ffe0725)
+
+### Analysis
+IQ metrics revealed our output was 2x more saturated than SPP (0.21 vs 0.09). This caused:
+- G-dominant: 42% vs 21% (too much green)
+- B-dominant: 23% vs 29% (not enough blue)
+- Low channel correlations (G-B: 0.76 vs 0.94)
+
+### Implementation
+Added global desaturation in `src/x3f_process.c`:
+```c
+double gray = (output[0] + output[1] + output[2]) / 3.0;
+double desat_factor = 0.65;
+for (color = 0; color < 3; color++) {
+  output[color] = gray + (output[color] - gray) * desat_factor;
+}
+```
+
+Also adjusted channel multipliers: green=0.91, B=1.08, R=1.06
+
+### Results
+
+| Metric | Before | After | Target |
+|--------|--------|-------|--------|
+| RMSE (0927) | 14.56 | 11.88 | - |
+| Saturation | 0.21 | 0.14 | 0.09 |
+| G-B correlation | 0.76 | 0.90 | 0.94 |
+| RB correlation | 0.87 | 0.95 | 0.94 |
+| RG correlation | 0.92 | 0.97 | 0.99 |
+| G-dominant % | 42% | 32% | 21% |
+| B-dominant % | 23% | 29% | 29% |
+
+**Overall RMSE improvement: 18.4%** (14.56 → 11.88 for file 0927)
+
+### Key Finding
+SPP applies significant global desaturation that:
+1. Reduces overall saturation (more muted colors)
+2. Brings channel correlations closer together
+3. Naturally reduces G-dominant bias
+
+This is likely part of SPP's "film-like" processing aesthetic.
+
+### Remaining Differences
+- G-dominant is still 32% vs 21% (but RMSE improved significantly!)
+- Sharpness is still 30% lower than SPP (aesthetic choice)
+- Shadow noise is still 6-8x higher than SPP (detail preservation)
+
+---
+
+## 2026-02-26: Full Reference Set Validation
+
+### Objective
+Validate that desaturation improvements are consistent across all 25 reference files.
+
+### Test Results
+
+| Metric | Pre-Desaturation | Post-Desaturation | Improvement |
+|--------|-----------------|-------------------|-------------|
+| Overall Avg RMSE | 19.15 | 14.40 | **24.8%** |
+| ISO 200 Avg RMSE | 18.95 | 13.80 | **27.2%** |
+| ISO 400 Avg RMSE | 20.19 | 17.57 | **13.0%** |
+
+### Per-File Results
+
+| File | RMSE | Change | Notes |
+|------|------|--------|-------|
+| 0993 | 10.74 | -15.3% | Best match |
+| 0991 | 11.93 | -16.3% | |
+| 0992 | 11.89 | +0.4% | Slightly worse (tiny) |
+| 0994 | 11.75 | -3.1% | |
+| 0927 | 11.88 | -18.4% | |
+| 0990 | 12.39 | -32.5% | |
+| 0995 | 12.47 | -12.6% | |
+| 0996 | 12.48 | -12.4% | |
+| 0998 | 12.60 | -7.8% | |
+| 0997 | 12.85 | -8.2% | |
+| 0929 | 13.92 | -29.7% | |
+| 0930 | 14.04 | -41.4% | |
+| 0928 | 14.62 | -33.6% | |
+| 0933 | 14.72 | -38.7% | |
+| 0932 | 17.43 | -24.4% | |
+| 0936 | 16.37 | -51.1% | Best improvement |
+| 0935 | 17.42 | -37.6% | |
+| 0934 | 17.49 | -37.8% | |
+| 0937 | 18.44 | -40.0% | |
+| 1003 | 17.46 | -16.3% | ISO 400 |
+| 1004 | 17.54 | -18.1% | ISO 400 |
+| 1008 | 17.77 | -14.0% | ISO 400 |
+| 1009 | 17.53 | -1.6% | ISO 400 |
+
+**Improved: 24/25 files** (only 0992 was essentially unchanged, +0.05)
+
+### Key Observations
+
+1. **Best improvements**: Clipped files (0936: -51.1%, 0937: -40.0%) improved dramatically
+2. **ISO 200 vs 400**: Desaturation helps ISO 200 files more (27% vs 13%)
+3. **Remaining high-RMSE files**: 
+   - ISO 400 files (1003, 1004, 1008, 1009) still around 17.5
+   - Some clipped files (0934, 0935, 0937) still above 17
+
+### IQ Metrics Consistency Check
+
+| File | Our Saturation | Ref Saturation | Our G-Dom | Ref G-Dom |
+|------|----------------|----------------|-----------|-----------|
+| 0927 | 0.14 | 0.09 | 32% | 21% |
+| 0993 | 0.10 | 0.10 | 30% | 38% |
+| 0994 | 0.43 | 0.18 | 31% | 16% |
+| 1003 | 0.20 | 0.06 | 40% | 21% |
+
+- **File 0993**: Nearly perfect match (saturation 0.10 vs 0.10)
+- **Other files**: Still show saturation discrepancy (varies by scene)
+- **ISO 400**: Higher saturation issue persists
+
+### Conclusion
+
+Desaturation was the right direction - **24/25 files improved**. The average RMSE dropped from 19.15 to 14.40 (24.8% improvement). Remaining issues are:
+1. Scene-dependent saturation - some images need more/less desaturation
+2. ISO 400 files still underperform (13% vs 27% improvement)
+3. IQ metrics show color balance still differs by scene
+
+### Next Steps Options
+
+1. **Further desaturation**: Try factor 0.60-0.55 for more aggressive desaturation
+2. **Per-ISO tuning**: Different desaturation for ISO 400 vs ISO 200
+3. **Scene-adaptive**: Adjust desaturation based on image statistics
+4. **Focus on ISO 400**: These files need specific improvements
