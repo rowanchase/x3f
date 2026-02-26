@@ -461,12 +461,13 @@ static void interpolate_bad_pixels(x3f_t *x3f, x3f_area16_t *image, int colors)
       (colors == 3 && x3f_get_camf_matrix_var(x3f, "BadPixelsChromaF23",
 					      &bpf23_len, NULL, NULL,
 					      M_UINT, (void **)&bpf23)))
-    for (i=0, row=-1; i < bpf23_len; i++)
+    for (i=0, row=-1; i < bpf23_len; i++) {
       if (row == -1) row = bpf23[i];
       else if (bpf23[i] == 0) row = -1;
       else {MARK_PIX(bad_pixel_list, bad_pixel_vec,
 		     bpf23[i], row,
 		     image->columns, image->rows); i++;}
+    }
 
   /* Interpolate over autofocus pixels for sd Quattro and sd Quattro H.
      TODO: The positions shouldn't really be hardcoded. */
@@ -943,16 +944,6 @@ static int convert_data(x3f_t *x3f,
           }
         }
 
-        /* Global desaturation: SPP has much lower saturation (0.09 vs 0.21)
-           Apply stronger global desaturation to reduce oversaturation.
-           This also helps reduce the G-dominant percentage. */
-        {
-          double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double desat_factor = 0.65;
-          for (color = 0; color < 3; color++) {
-            output[color] = gray + (output[color] - gray) * desat_factor;
-          }
-        }
 
         /* Write back the data, doing non linear coding */
         for (color = 0; color < 3; color++)
