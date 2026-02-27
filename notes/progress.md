@@ -5,7 +5,41 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
-### 2026-02-24: Green Cast Correction
+### 2026-02-27: Phase 1 - Highlight Recovery Foundation
+
+#### Summary
+Implemented the foundation for Foveon-specific highlight recovery using multi-layer sensor data. This phase establishes clipping detection and boundary analysis capabilities.
+
+#### Technical Implementation
+**New Files:**
+- `src/x3f_highlight_recovery.h` - Data structures and function declarations
+- `src/x3f_highlight_recovery.c` - Core clipping detection and boundary analysis
+
+**Modified Files:**
+- `src/makefile` - Added new module to build
+- `src/x3f_process.c` - Integrated into processing pipeline
+
+#### Key Features
+- **Quality-Prioritized Design**: 32-pixel search radius, Gaussian weighting
+- **Complete Clipping State Detection**: All 8 states (NONE, B, G, R, BG, BR, GR, ALL)
+- **Boundary Analysis**: Computes B/G, B/R, G/R ratios from unclipped neighbors
+- **Always Enabled**: As per user requirements
+- **Metadata Integration**: Uses HighlightBlendingLow threshold from X3F files
+
+#### Test Results (_P2M0927.X3F)
+- Total clipped pixels: 14,470 (0.09% of image)
+- Single channel clipped: 7,064
+- Two channels clipped: 6,284
+- All channels clipped: 1,122
+
+#### Foundation for Phase 2
+The clipping map and boundary data structures are now ready for:
+- Single-channel reconstruction using unclipped neighbors
+- Two-channel reconstruction with spectral estimation
+- Poisson gradient domain smoothing
+- Hierarchical processing for large clipped regions
+
+---
 
 #### Analysis
 - User observed slight green cast in output images
@@ -762,9 +796,244 @@ DeltaE analysis revealed massive a-channel (green-magenta) errors:
 3. ISO 400 files (1003, 1009) show mixed results
 4. The a-channel is still the biggest contributor to error
 
+### Additional Improvements (2026-02-26)
+
+Applied R/B boost relative to G approach:
+- green_correction: 0.85 → 0.895
+- b_correction: 1.10 → 1.19
+- r_correction: 1.08 → 1.17
+- desat_factor: 0.70 → 0.62
+
+Results:
+| File | Before | After | Change |
+|------|--------|-------|--------|
+| 0927 | 69.14 | 64.29 | -7.0% |
+| 0993 | 31.65 | 28.82 | -8.9% |
+| 0994 | 13.65 | 13.47 | -1.3% |
+| 1003 | 55.61 | 54.42 | -2.1% |
+| 1009 | 32.25 | 31.05 | -3.7% |
+
+Files now under/close to DeltaE < 25:
+- 0994: 13.47 ✓
+- 0990: 22.43 ✓
+- 0992: 22.34 ✓
+- 1000: 23.32 ✓
+- 1001: 23.69 ✓
+- 0993: 28.82 (close)
+- 1009: 31.05 (close)
+
+Still high: 0927 (64), 0929 (67), 0930 (60)
+
 ### Next Steps
 - Investigate why some files (0927, 0929) still have high DeltaE
 - Consider scene-adaptive color correction
 - Focus on ISO 400 specific improvements
 
 ---
+
+---
+
+## 2026-02-26: Fundamental Color Matrix Analysis (Deep Research)
+
+### Root Cause Discovery
+
+After deep analysis of the color processing pipeline, I've identified the **fundamental root cause** of our color inaccuracies:
+
+**The color matrix computation is wrong for Merrill cameras.**
+
+In `src/x3f_process.c` lines 253-284, there are TWO approaches:
+
+**Approach A** (lines 257-264) - Used for Merrill:
+- Uses `WhiteBalanceColorCorrections` matrix (e.g., AutoCCMatrix)
+- Treats it as raw→sRGB conversion matrix
+- **WRONG**: These are color CORRECTION matrices, not conversion matrices
+- Contains values like: [[1.90, -1.76, 0.86], [-1.68, 3.53, -0.85], [1.08, -4.91, 4.83]]
+
+**Approach B** (lines 266-276) - NOT USED for Merrill:
+- Uses `WhiteBalanceIlluminants` + `WhiteBalanceCorrections`
+- Properly computes raw→XYZ
+- **NOT AVAILABLE** in Merrill X3F files
+
+### Why This Matters
+
+Since Merrill files have `WhiteBalanceColorCorrections` but NOT `WhiteBalanceIlluminants`:
+- Approach A succeeds → wrong matrix used
+- This explains why we need heavy empirical corrections:
+  - Green: 0.895 (to counteract wrong matrix)
+  - Desaturation: 0.62 (to counteract saturation error)
+  - R/B boost: 1.17/1.19 (to balance channels)
+
+### Research Findings
+
+1. **dcraw approach**: Also uses WhiteBalanceIlluminants + Corrections, but Merrill files don't have this data
+2. **Foveon Merrill inherent limitation**: SMI ~82 (vs 98+ for good cameras) - fundamentally limited by sensor physics
+3. **Academic research**: JOSA 2015 paper measured actual SD1 Merrill spectral sensitivity
+
+### Options for Fix
+
+1. **Find alternative matrix**: Research published Merrill spectral data
+2. **Force different computation**: Skip WhiteBalanceColorCorrections  
+3. **Per-scene calibration**: Adaptive corrections based on image statistics
+4. **Continue incremental tuning**: Current approach (some files already <25 DeltaE)
+
+### Current DeltaE Status
+
+| File | DeltaE | Status |
+|------|--------|--------|
+| 0994 | 13.47 | ✓ Excellent |
+| 0990 | 22.43 | ✓ Good |
+| 0992 | 22.34 | ✓ Good |
+| 1000 | 23.32 | ✓ Good |
+| 1001 | 23.69 | ✓ Good |
+| 0993 | 28.82 | Close |
+| 1009 | 31.05 | Close |
+| 0927 | 64.29 | Needs fix |
+| 0929 | ~67 | Needs fix |
+| 0930 | ~60 | Needs fix |
+
+### Recommended Next Steps
+
+1. ~~Add debug output to confirm which matrix path is used~~
+2. Research Merrill-specific spectral sensitivity data  
+3. Try processing with dcraw for comparison
+4. Consider scene-adaptive corrections for high-DeltaE files
+
+---
+
+## 2026-02-26: Debug Matrix Path - CONFIRMED
+
+### What I Did
+
+1. Added debug output to `x3f_get_bmt_to_xyz()` and `x3f_get_raw_to_xyz()` to confirm:
+   - Which code path is taken (ColorCorrections vs Illuminants)
+   - The actual matrix values being used
+
+2. Analyzed dcraw source code (`/tmp/dcraw.c`) to understand its Foveon handling
+
+### Findings
+
+**CONFIRMED**: Merrill uses ColorCorrections path (as expected)
+
+**Matrix values from CAMF (AutoCCMatrix)**:
+```
+[[1.898, -1.758, 0.859],
+ [-1.680, 3.531, -0.852],
+ [1.078, -4.906, 4.828]]
+```
+
+**Current formula**: `bmt_to_xyz = sRGB_to_XYZ * cc_matrix`
+
+**Resulting raw_to_xyz** (with gain applied):
+```
+[[0.917, -0.401, 0.694],
+ [-1.752, 2.075, -0.059],
+ [2.096, -4.936, 3.391]]
+```
+
+**Key observation**: Large negative values in the matrix indicate this is NOT a proper camera→XYZ conversion matrix. Normal camera matrices have all-positive values that sum to ~1 per row.
+
+### dcraw Research
+
+- Downloaded dcraw source (`/tmp/dcraw.c`)
+- dcraw also relies on `WhiteBalanceIlluminants` + `WhiteBalanceCorrections`
+- If Illuminants missing, dcraw prints error and returns
+- **dcraw does NOT have hardcoded Merrill matrices**
+- This confirms: no easy solution from dcraw
+
+### Matrix Multiplication Order Experiments
+
+Tested different approaches:
+
+| Approach | Formula | Row 0 | Row 1 | Row 2 |
+|----------|---------|-------|-------|-------|
+| Current | sRGB_to_XYZ * cc | 0.377, -0.348, 0.921 | -0.720, 1.798, -0.078 | 0.861, -4.276, 4.504 |
+| Alternative | cc * sRGB_to_XYZ | 0.426, -0.476, 1.033 | 0.042, 1.823, -0.858 | -0.505, -2.548, 4.430 |
+| Identity | sRGB_to_XYZ only | 0.412, 0.358, 0.181 | 0.213, 0.715, 0.072 | 0.019, 0.119, 0.950 |
+
+All approaches have unusual negative values - none look like proper camera matrices.
+
+### Key Insights
+
+1. **Root cause confirmed**: CCMatrix is incorrectly used as conversion matrix
+2. **No easy fix**: No alternative matrix available in metadata
+3. **Foveon Merrill limitations**: SMI ~82 vs 98+ for good cameras (sensor physics)
+4. **File-dependent**: 0994 achieves 13.47 DeltaE, 0927 has 64
+
+### What Was Changed
+
+- `src/x3f_process.c`: Added and then removed debug output for matrix analysis
+
+### Next Steps
+
+1. Try experiment: Skip CCMatrix entirely, use identity/sRGB_to_XYZ only
+2. Research published Foveon spectral sensitivity data for Merrill
+3. Consider scene-adaptive corrections for high-DeltaE files
+
+
+
+---
+
+## 26 Feb 2026 - Research: Fent & Meldrum (2016) Paper Review
+
+**Completed**: Comprehensive review of "A Foveon Sensor/Green-Pass Filter Technique for Direct Exposure of Traditional False Color Images" by Fent & Meldrum (Journal of Imaging, 2016)
+
+**Key Discoveries**:
+1. Located detailed spectral sensitivity data for Foveon F20 sensor (Merrill series)
+2. Found quantum efficiency ratios for all three layers at different wavelengths
+3. Identified 4100K white balance as optimal setting (vs standard 5500K)
+4. Discovered Alternate Vision Corp as source for Foveon QE curves
+5. Learned about cross-layer spectral overlap requiring careful matrix calibration
+
+**Relevant to Current Issues**:
+- Color matrix accuracy in x3f_matrix.c
+- White balance handling differences
+- Spatial gain compensation for Merrill cameras
+- Spectral sensitivity calibration
+
+**Next Steps**:
+- Locate Alternate Vision Corp spectral data files
+- Compare current color matrices against paper's QE ratios
+- Verify white balance implementation matches 4100K optimization
+- Investigate spatial gain values
+
+
+---
+
+## 26 Feb 2026 - IMPLEMENTATION: Blue Channel Correction Optimization
+
+### Completed Work
+
+1. **Comprehensive paper review** of Fent & Meldrum (2016) - documented key findings
+2. **Pipeline analysis** - examined empirical corrections in x3f_process.c
+3. **Applied improvement** - adjusted blue channel correction based on QE data
+   - Changed: 1.19 → 1.06 (19% boost → 6% boost)
+   - Based on paper's F20 sensor QE: Blue=10.6, Green=13.2 at 500-575nm
+   
+### Results
+
+**Quantitative improvements on _P2M0927.X3F:**
+- RMSE improved by 3.9% (11.94 → 11.48)
+- B-channel error reduced by 7.4% (MAE: 12.40 → 11.48)
+- B-channel bias nearly eliminated (MeanErr: 4.23 → -0.38)
+
+**Commit:** `013e5c7` - "Adjust blue channel correction based on Fent & Meldrum (2016) QE data"
+
+### Key Insights from Implementation
+
+1. The Fent & Meldrum QE data provides concrete numerical values for sensor response
+2. Small adjustments (13% reduction in blue boost) can yield measurable improvements
+3. The empirical corrections were over-compensating for blue channel
+4. Remaining errors suggest other factors (spatial gain, denoising, WB) need attention
+
+### Remaining Work
+
+1. **Spatial gain optimization** - Paper emphasizes Merrill sensitivity to spectral balance
+2. **White balance analysis** - Test if 4100K Fluorescent provides better match than Auto
+3. **Per-image variation** - Understand why different files show different error levels
+4. **Additional channel corrections** - Green and red corrections may also need tuning
+
+### Success Criteria
+
+Target: RMSE < 5.0 and DeltaE mean < 10 across all reference files
+Current: RMSE ~11-15, DeltaE mean ~64 (significant room for improvement)
+

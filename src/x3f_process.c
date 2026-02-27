@@ -15,6 +15,7 @@
 #include "x3f_denoise.h"
 #include "x3f_spatial_gain.h"
 #include "x3f_printf.h"
+#include "x3f_highlight_recovery.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -802,6 +803,10 @@ static int convert_data(x3f_t *x3f,
   x3f_spatial_gain_corr_t sgain[MAXCORR];
   int sgain_num;
 
+  /* Highlight recovery data - declared at function scope for cleanup access */
+  x3f_clip_map_t *clip_map = NULL;
+  x3f_boundary_data_t *boundary_data = NULL;
+
   double hl_blending_low, hl_blending_high, hl_restore_thresh;
   double hl_chan_thresh1, hl_chan_thresh2, hl_sat_factor;
 
@@ -829,6 +834,42 @@ static int convert_data(x3f_t *x3f,
       x3f_printf(WARN, "Could not get spatial gain\n");
   } else {
     sgain_num = 0;
+  }
+
+  /* Phase 1: Highlight Recovery - Clipping Detection and Boundary Analysis
+   * Always enabled for Foveon sensors to maximize quality */
+  {
+    /* Create clipping map */
+    clip_map = x3f_create_clip_map(image->columns, image->rows);
+    if (!clip_map) {
+      x3f_printf(ERR, "Failed to create clip map\n");
+      return 0;
+    }
+    
+    /* Detect clipping using highlight threshold from metadata */
+    double hl_threshold = hl_blending_low > 0 ? hl_blending_low : 0.75;
+    if (!x3f_detect_clipping(image, ilevels, hl_threshold, clip_map)) {
+      x3f_printf(ERR, "Clipping detection failed\n");
+      x3f_destroy_clip_map(clip_map);
+      return 0;
+    }
+    
+    /* Analyze boundaries if we have any clipped pixels */
+    if (clip_map->total_clipped_pixels > 0) {
+      boundary_data = x3f_create_boundary_data(image->columns, image->rows);
+      if (!boundary_data) {
+        x3f_printf(ERR, "Failed to create boundary data\n");
+        x3f_destroy_clip_map(clip_map);
+        return 0;
+      }
+      
+      if (!x3f_analyze_boundaries(image, clip_map, boundary_data)) {
+        x3f_printf(ERR, "Boundary analysis failed\n");
+        x3f_free_boundary_data(boundary_data);
+        x3f_destroy_clip_map(clip_map);
+        return 0;
+      }
+    }
   }
 
   {
@@ -970,6 +1011,10 @@ static int convert_data(x3f_t *x3f,
       }
     }
   }
+
+  /* Cleanup highlight recovery data */
+  if (boundary_data) x3f_free_boundary_data(boundary_data);
+  if (clip_map) x3f_destroy_clip_map(clip_map);
 
   x3f_cleanup_spatial_gain(sgain, sgain_num);
 
