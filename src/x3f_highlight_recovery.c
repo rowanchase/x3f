@@ -16,8 +16,11 @@
 
 #define SEARCH_RADIUS 32  /* Quality priority: larger radius for better boundary analysis */
 
-/* Phase 2b: Soft-Knee and Texture Transfer Parameters */
-#define SOFT_KNEE_THRESHOLD 0.80f  /* Start compression at ~204/255 */
+/* Phase 2b: Soft-Knee and Texture Transfer Parameters
+ * Threshold adjusted to 0.32 (0.8/2.5) to account for 2.5x exposure compensation
+ * in x3f_process.c. After compression to [0.32, 0.8] and 2.5x boost, values
+ * will be in [0.8, 2.0] range, mapping to hard highlights rather than soft. */
+#define SOFT_KNEE_THRESHOLD 0.32f  /* 0.8/2.5 - adjusted for exposure compensation */
 #define TEXTURE_STRENGTH 1.0f       /* Full texture transfer */
 #define NEAR_CLIP_THRESHOLD 0.80f   /* Process near-clipped pixels for smooth transition */
 

@@ -847,7 +847,9 @@ static int convert_data(x3f_t *x3f,
     }
     
     /* Detect clipping using highlight threshold from metadata */
-    double hl_threshold = hl_blending_low > 0 ? hl_blending_low : 0.75;
+    /* Note: Lower threshold = more aggressive clipping detection */
+    /* Hardcoded to 0.50 for testing - overrides metadata value */
+    double hl_threshold = 0.50;
     if (!x3f_detect_clipping(image, ilevels, hl_threshold, clip_map)) {
       x3f_printf(ERR, "Clipping detection failed\n");
       x3f_destroy_clip_map(clip_map);

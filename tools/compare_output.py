@@ -597,6 +597,187 @@ def compute_iq_metrics(arr):
     return metrics
 
 
+def compute_highlight_histogram_metrics(arr, channel_name='unknown'):
+    """Compute detailed histogram metrics focused on highlight region (200-255).
+    
+    Args:
+        arr: 2D array of channel values (0-255)
+        channel_name: Name of the channel for reporting
+        
+    Returns:
+        Dictionary with highlight-focused histogram statistics
+    """
+    metrics = {
+        'channel': channel_name,
+        'total_pixels': arr.size,
+    }
+    
+    # Compute full histogram
+    hist, bin_edges = np.histogram(arr, bins=256, range=(0, 256))
+    metrics['histogram'] = hist.tolist()
+    
+    # Define highlight regions
+    highlight_regions = {
+        'soft_highlights': (200, 230),    # Starting to clip
+        'hard_highlights': (230, 254),    # Nearly clipped
+        'fully_clipped': (254, 256),       # At max value
+    }
+    
+    # Per-region analysis
+    region_metrics = {}
+    for region_name, (low, high) in highlight_regions.items():
+        mask = (arr >= low) & (arr < high)
+        pixel_count = np.sum(mask)
+        pixel_pct = 100.0 * pixel_count / arr.size
+        
+        if pixel_count > 0:
+            values_in_region = arr[mask]
+            region_metrics[region_name] = {
+                'pixel_count': int(pixel_count),
+                'pixel_pct': float(pixel_pct),
+                'mean': float(np.mean(values_in_region)),
+                'std': float(np.std(values_in_region)),
+                'min': float(np.min(values_in_region)),
+                'max': float(np.max(values_in_region)),
+            }
+        else:
+            region_metrics[region_name] = {
+                'pixel_count': 0,
+                'pixel_pct': 0.0,
+                'mean': 0.0,
+                'std': 0.0,
+                'min': 0.0,
+                'max': 0.0,
+            }
+    
+    metrics['highlight_regions'] = region_metrics
+    
+    # Compute percentile-based statistics
+    percentiles = [90, 95, 98, 99, 99.5, 99.9, 100]
+    perc_values = np.percentile(arr, percentiles)
+    metrics['percentiles'] = {f'p{p}': float(v) for p, v in zip(percentiles, perc_values)}
+    
+    # Detect potential clipping issues
+    # Look for "flat" histogram at the top (many pixels at max value)
+    top_10_bins = hist[246:256]  # 246-255
+    top_5_bins = hist[251:256]   # 251-255
+    
+    # Suspicious patterns:
+    # 1. Large spike at max value (254-255)
+    max_value_pixels = np.sum(hist[254:256])
+    metrics['suspicious_patterns'] = {
+        'max_value_pixels': int(max_value_pixels),
+        'max_value_pct': float(100.0 * max_value_pixels / arr.size),
+        'top_10_sum': int(np.sum(top_10_bins)),
+        'top_5_sum': int(np.sum(top_5_bins)),
+    }
+    
+    # Detect "compression" - gradual falloff vs sharp cutoff
+    # A natural image should have gradual falloff in highlights
+    # Clipped images often have sharp cutoffs
+    if np.sum(hist[200:240]) > 0:
+        # Compare density in 200-220 vs 220-240
+        low_high_density = np.mean(hist[200:220])
+        mid_high_density = np.mean(hist[220:240])
+        
+        if low_high_density > 0:
+            compression_ratio = mid_high_density / low_high_density
+            metrics['suspicious_patterns']['compression_ratio'] = float(compression_ratio)
+            
+            # If ratio is very low, it suggests compression/clipping
+            if compression_ratio < 0.3:
+                metrics['suspicious_patterns']['possible_compression'] = True
+                metrics['suspicious_patterns']['compression_severity'] = 'high' if compression_ratio < 0.1 else 'moderate'
+            else:
+                metrics['suspicious_patterns']['possible_compression'] = False
+                metrics['suspicious_patterns']['compression_severity'] = 'none'
+    
+    return metrics
+
+
+def compare_histograms(out_hist_metrics, ref_hist_metrics):
+    """Compare histograms between output and reference.
+    
+    Returns dictionary of differences and suspicious patterns.
+    """
+    comparison = {
+        'channel': out_hist_metrics['channel'],
+        'total_pixels': out_hist_metrics['total_pixels'],
+    }
+    
+    # Compare highlight region statistics
+    region_comparison = {}
+    for region_name in out_hist_metrics.get('highlight_regions', {}):
+        if region_name in ref_hist_metrics.get('highlight_regions', {}):
+            out_reg = out_hist_metrics['highlight_regions'][region_name]
+            ref_reg = ref_hist_metrics['highlight_regions'][region_name]
+            
+            region_comparison[region_name] = {
+                'output_count': out_reg['pixel_count'],
+                'reference_count': ref_reg['pixel_count'],
+                'count_diff': out_reg['pixel_count'] - ref_reg['pixel_count'],
+                'output_pct': out_reg['pixel_pct'],
+                'reference_pct': ref_reg['pixel_pct'],
+                'pct_diff': out_reg['pixel_pct'] - ref_reg['pixel_pct'],
+            }
+    
+    comparison['highlight_regions'] = region_comparison
+    
+    # Compare percentiles
+    perc_comparison = {}
+    for perc_name in out_hist_metrics.get('percentiles', {}):
+        if perc_name in ref_hist_metrics.get('percentiles', {}):
+            out_val = out_hist_metrics['percentiles'][perc_name]
+            ref_val = ref_hist_metrics['percentiles'][perc_name]
+            diff = out_val - ref_val
+            
+            perc_comparison[perc_name] = {
+                'output': out_val,
+                'reference': ref_val,
+                'diff': diff,
+            }
+    
+    comparison['percentiles'] = perc_comparison
+    
+    # Detect suspicious differences
+    suspicious = []
+    
+    # 1. Large difference in 99th percentile (suggests different highlight handling)
+    p99_diff = perc_comparison.get('p99.0', {}).get('diff', 0)
+    if abs(p99_diff) > 5:
+        suspicious.append(f"Large p99 difference: {p99_diff:+.1f} (output={perc_comparison['p99.0']['output']:.1f}, ref={perc_comparison['p99.0']['reference']:.1f})")
+    
+    # 2. Different clipping behavior at max value
+    out_max = out_hist_metrics['suspicious_patterns'].get('max_value_pct', 0)
+    ref_max = ref_hist_metrics['suspicious_patterns'].get('max_value_pct', 0)
+    max_diff = out_max - ref_max
+    
+    if abs(max_diff) > 0.5:  # More than 0.5% difference
+        suspicious.append(f"Max value clipping differs: {max_diff:+.2f}% (output={out_max:.2f}%, ref={ref_max:.2f}%)")
+    
+    # 3. Different "soft highlight" region population
+    if 'soft_highlights' in region_comparison:
+        soft_diff = region_comparison['soft_highlights']['count_diff']
+        soft_pct_diff = region_comparison['soft_highlights']['pct_diff']
+        
+        if abs(soft_pct_diff) > 1.0:  # More than 1% difference in 200-230 range
+            suspicious.append(f"Soft highlight region differs: {soft_pct_diff:+.2f}% ({soft_diff:+d} pixels)")
+    
+    # 4. Compression pattern differences
+    out_compression = out_hist_metrics['suspicious_patterns'].get('possible_compression', False)
+    ref_compression = ref_hist_metrics['suspicious_patterns'].get('possible_compression', False)
+    
+    if out_compression != ref_compression:
+        out_sev = out_hist_metrics['suspicious_patterns'].get('compression_severity', 'none')
+        ref_sev = ref_hist_metrics['suspicious_patterns'].get('compression_severity', 'none')
+        suspicious.append(f"Compression mismatch: output={out_sev}, reference={ref_sev}")
+    
+    comparison['suspicious_differences'] = suspicious
+    comparison['has_suspicious_patterns'] = len(suspicious) > 0
+    
+    return comparison
+
+
 def compare_iq_metrics(output_metrics, ref_metrics):
     """Compare image quality metrics between output and reference."""
     comparison = {}
@@ -724,6 +905,7 @@ def main():
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     parser.add_argument('--iq-metrics', action='store_true', help='Compute image quality metrics (noise, dynamic range, etc.)')
     parser.add_argument('--iq-json', help='Output IQ metrics to JSON file')
+    parser.add_argument('--histogram-json', help='Output highlight histogram metrics to JSON file')
     parser.add_argument('--no-delta-e', action='store_true', help='Disable DeltaE perceptual color metrics (enabled by default)')
     parser.add_argument('--num-samples', type=int, default=20, help='Number of random pixel samples for DeltaE (default: 20)')
     parser.add_argument('--delta-e-json', help='Output DeltaE metrics to JSON file')
@@ -939,6 +1121,79 @@ def main():
                     ref_val = ref_iq['color'].get(key, 0)
                     suffix = ' (absolute)'
                     print(f"  {key}{suffix}: output={out_val:.4f}, ref={ref_val:.4f}, diff={out_val-ref_val:+.4f}")
+            
+            # Highlight Histogram Analysis
+            print("\n" + "="*60)
+            print("HIGHLIGHT HISTOGRAM ANALYSIS (200-255 range)")
+            print("="*60)
+            
+            # Compute histogram metrics for each channel
+            hist_comparisons = []
+            all_suspicious = []
+            
+            for i, ch_name in enumerate(['R', 'G', 'B']):
+                out_ch = output_arr[:,:,i]
+                ref_ch = reference_arr[:,:,i]
+                
+                out_hist = compute_highlight_histogram_metrics(out_ch, ch_name)
+                ref_hist = compute_highlight_histogram_metrics(ref_ch, ch_name)
+                
+                comparison = compare_histograms(out_hist, ref_hist)
+                hist_comparisons.append(comparison)
+                
+                # Print per-channel summary
+                print(f"\n{ch_name} Channel:")
+                print(f"  Percentiles (output vs reference):")
+                for perc in ['p90', 'p95', 'p99', 'p99.9']:
+                    if perc in comparison['percentiles']:
+                        p = comparison['percentiles'][perc]
+                        print(f"    {perc}: {p['output']:6.1f} vs {p['reference']:6.1f} (diff: {p['diff']:+6.1f})")
+                
+                # Print highlight region breakdown
+                print(f"\n  Highlight Region Distribution:")
+                for region in ['soft_highlights', 'hard_highlights', 'fully_clipped']:
+                    if region in comparison['highlight_regions']:
+                        reg = comparison['highlight_regions'][region]
+                        print(f"    {region:20s}: output={reg['output_count']:7d} ({reg['output_pct']:5.2f}%) "
+                              f"ref={reg['reference_count']:7d} ({reg['reference_pct']:5.2f}%) "
+                              f"diff={reg['count_diff']:+7d} ({reg['pct_diff']:+.2f}%)")
+                
+                # Print suspicious patterns
+                if comparison['has_suspicious_patterns']:
+                    print(f"\n  *** SUSPICIOUS PATTERNS DETECTED ***")
+                    for susp in comparison['suspicious_differences']:
+                        print(f"    - {susp}")
+                        all_suspicious.append(f"{ch_name}: {susp}")
+                else:
+                    print(f"\n  No suspicious patterns detected")
+            
+            # Overall summary
+            print("\n" + "="*60)
+            print("HIGHLIGHT HISTOGRAM SUMMARY")
+            print("="*60)
+            
+            if all_suspicious:
+                print(f"\n*** {len(all_suspicious)} SUSPICIOUS DIFFERENCES FOUND ***")
+                for s in all_suspicious:
+                    print(f"  - {s}")
+                print("\nRecommendation: Investigate highlight processing pipeline")
+            else:
+                print("\nNo significant highlight histogram differences detected.")
+            
+            # Save histogram metrics to JSON if requested
+            if args.histogram_json:
+                histogram_data = {
+                    'per_channel_comparisons': hist_comparisons,
+                    'suspicious_patterns': all_suspicious,
+                    'summary': {
+                        'total_suspicious': len(all_suspicious),
+                        'channels_analyzed': ['R', 'G', 'B'],
+                        'focus_region': '200-255 (highlights)',
+                    }
+                }
+                with open(args.histogram_json, 'w') as f:
+                    json.dump(histogram_data, f, indent=2)
+                print(f"\nHistogram metrics saved to: {args.histogram_json}")
             
             # Save IQ metrics to JSON if requested
             if args.iq_json:
