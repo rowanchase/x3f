@@ -792,7 +792,8 @@ static int convert_data(x3f_t *x3f,
 			x3f_color_encoding_t encoding,
 			int apply_sgain,
 			char *wb,
-			double capture_iso)
+			double capture_iso,
+			int use_tone_curve)
 {
   int row, col, color;
   uint16_t max_out = 65535;
@@ -957,43 +958,35 @@ static int convert_data(x3f_t *x3f,
         /* Do color conversion */
         x3f_3x3_3x1_mul(conv_matrix, reconstructed, output);
 
-        /* Apply SPP-like exposure compensation 
-            SPP appears to apply additional brightness beyond ISO scaling.
-            Based on analysis: ratio of ~2.5x in linear space on top of ISO scaling.
-            This is applied before gamma encoding. */
+        /* DISABLED: 2.5x boost for testing
+        // Apply SPP-like exposure compensation 
         {
           double spp_exposure_comp = 2.5;
           for (color = 0; color < 3; color++)
             output[color] *= spp_exposure_comp;
         }
+        */
 
-        /* Green cast correction: reduce green channel more significantly
-             Analysis shows a-channel (green-magenta) DeltaE error is ~54 mean.
-             Need stronger green reduction to match SPP's muted colors.
-             Blue boost to increase B-dominant towards 29% target.
-             Also boost R slightly more to compensate for reduced overall brightness.
-             Try boosting R and B more relative to G to reduce a-channel error.
-             
-             NOTE: Adjusted b_correction from 1.19 to 1.14 based on Fent & Meldrum
-             QE data showing Blue layer has relatively lower QE (10.6 vs 13.2 green)
-             and over-boosting blue contributes to high B-channel error (MAE=12.4). */
+        /* Post-matrix color corrections
+         * Green/Blue/Red corrections disabled as they cause color shifts.
+         * Global desaturation enabled at low level (0.1) for subtle film-like effect.
+         */
+        #if 0
+        /* Green cast correction - DISABLED: causes green shift */
         {
-          double green_correction = 0.895;
-          double b_correction = 1.06;  /* Was 1.19, optimized to 1.06 based on Fent & Meldrum (2016) QE data
-                                         Paper shows Blue layer QE=10.6 vs Green=13.2 at 500-575nm,
-                                         suggesting less blue boost needed than original 19% */
-          double r_correction = 1.17;
+          double green_correction = 1.0;
+          double b_correction = 1.00;
+          double r_correction = 1.00;
           output[1] *= green_correction;
           output[2] *= b_correction;
           output[0] *= r_correction;
         }
+        #endif
 
-        /* Global desaturation: SPP applies film-like desaturation
-             Target midtones specifically where DeltaE is worst (105 vs shadows 45).
-             Reduce saturation uniformly to bring colors closer to SPP reference. */
+        /* Global desaturation: minimal film-like effect (0.1 = 10% desaturation) */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double desat_factor = 0.62;
+          double desat_factor = 1.5;
           for (color = 0; color < 3; color++) {
             output[color] = gray + (output[color] - gray) * desat_factor;
           }
@@ -1056,9 +1049,47 @@ static int convert_data(x3f_t *x3f,
         }
 
 
-        /* Write back the data, doing non linear coding */
-        for (color = 0; color < 3; color++)
-          *valp[color] = x3f_LUT_lookup(lut, LUTSIZE, output[color]);
+        /* Apply log-like tone curve to lift shadows/mid-tones while preserving highlights
+         * This replaces the old 2.5x boost + gamma LUT approach */
+        if (use_tone_curve) {
+          /* Log curve parameters - shadow_boost controls shadow/mid-tone lift */
+          double shadow_boost = 5.0;  /* Strong shadow lift to match SPP brightness */
+          double highlight_knee = 2.0;  /* Where compression starts */
+          
+          for (color = 0; color < 3; color++) {
+            double x = output[color];
+            if (x < 0.0) x = 0.0;
+            
+            /* Log-like curve: y = log(1 + x*(e^k - 1)) / k */
+            double exp_k = exp(shadow_boost);
+            double y = log(1.0 + x * (exp_k - 1.0)) / shadow_boost;
+            
+            /* Soft highlight compression for x > highlight_knee */
+            if (x > highlight_knee) {
+              double t = (x - highlight_knee) / (1.0 - highlight_knee);
+              /* Compressed value with soft rolloff */
+              double compressed = highlight_knee + (1.0 - highlight_knee) * (t / (t + 0.5));
+              /* Blend factor: stronger compression as we approach 1.0 */
+              double blend = t * t;
+              y = y * (1.0 - blend) + compressed * blend;
+            }
+            
+            /* Clamp and convert to 16-bit */
+            if (y < 0.0) y = 0.0;
+            if (y > 1.0) y = 1.0;
+            *valp[color] = (uint16_t)round(y * 65535.0);
+          }
+        } else {
+          /* DISABLED: Non-linear LUT coding - direct linear conversion when tone curve disabled
+           * for testing or raw output purposes
+           */
+          for (color = 0; color < 3; color++) {
+            double val = output[color];
+            if (val < 0.0) val = 0.0;
+            if (val > 1.0) val = 1.0;
+            *valp[color] = (uint16_t)round(val * 65535.0);
+          }
+        }
       }
     }
   }
@@ -1141,7 +1172,8 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 			       int fix_bad,
 			       int denoise,
 			       int apply_sgain,
-			       char *wb)
+			       char *wb,
+			       int use_tone_curve)
 {
   x3f_area16_t original_image, expanded;
   x3f_image_levels_t il;
@@ -1197,7 +1229,7 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
   else if (denoise && !run_denoising(x3f)) return 0;
 
   if (encoding != NONE &&
-      !convert_data(x3f, &original_image, &il, encoding, apply_sgain, wb, capture_iso)) {
+      !convert_data(x3f, &original_image, &il, encoding, apply_sgain, wb, capture_iso, use_tone_curve)) {
     free(image->buf);
     return 0;
   }
@@ -1213,7 +1245,8 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 				 int apply_sgain,
 				 char *wb,
 				 uint32_t max_width,
-				 x3f_area8_t *preview)
+				 x3f_area8_t *preview,
+				 int use_tone_curve)
 {
   int row, col, color;
   uint16_t max_out = 255;
@@ -1280,10 +1313,40 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
       /* Do color conversion */
       x3f_3x3_3x1_mul(conv_matrix, input, output);
 
-      /* Write back the data, doing non linear coding */
-      for (color = 0; color < 3; color++)
-	preview->data[preview->row_stride*row + preview->channels*col + color] =
-	  x3f_LUT_lookup(lut, LUTSIZE, output[color]);
+      /* Apply log-like tone curve to preview (if enabled) */
+      if (use_tone_curve) {
+        double shadow_boost = 4.0;  /* Match main processing */
+        double highlight_knee = 0.90;
+        
+        for (color = 0; color < 3; color++) {
+          double x = output[color];
+          if (x < 0.0) x = 0.0;
+          
+          double exp_k = exp(shadow_boost);
+          double y = log(1.0 + x * (exp_k - 1.0)) / shadow_boost;
+          
+          if (x > highlight_knee) {
+            double t = (x - highlight_knee) / (1.0 - highlight_knee);
+            double compressed = highlight_knee + (1.0 - highlight_knee) * (t / (t + 0.5));
+            double blend = t * t;
+            y = y * (1.0 - blend) + compressed * blend;
+          }
+          
+          if (y < 0.0) y = 0.0;
+          if (y > 1.0) y = 1.0;
+          preview->data[preview->row_stride*row + preview->channels*col + color] =
+            (uint8_t)round(y * 255.0);
+        }
+      } else {
+        /* Direct linear conversion for preview when tone curve disabled */
+        for (color = 0; color < 3; color++) {
+          double val = output[color];
+          if (val < 0.0) val = 0.0;
+          if (val > 1.0) val = 1.0;
+          preview->data[preview->row_stride*row + preview->channels*col + color] =
+            (uint8_t)round(val * 255.0);
+        }
+      }
     }
   }
 

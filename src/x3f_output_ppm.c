@@ -40,7 +40,7 @@ x3f_return_t x3f_dump_raw_data_as_ppm(x3f_t *x3f,
 
   if (!x3f_get_image(x3f, &image, NULL, encoding,
 		     crop, fix_bad, denoise, apply_sgain,
-		     wb) ||
+		     wb, 1) ||  /* Default: tone curve enabled */
       image.channels < 3) {
     fclose(f_out);
     return X3F_ARGUMENT_ERROR;

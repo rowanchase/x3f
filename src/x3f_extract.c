@@ -73,9 +73,10 @@ static void usage(char *progname)
           "   -qtop           Dump Quattro top layer without preprocessing\n"
           "   -no-crop        Do not crop to active area\n"
           "   -no-denoise     Do not denoise RAW data\n"
-          "   -no-sgain       Do not apply spatial gain (color compensation)\n"
-          "   -no-fix-bad     Do not fix bad pixels\n"
-          "   -sgain          Apply spatial gain (default except for Quattro)\n"
+           "   -no-sgain       Do not apply spatial gain (color compensation)\n"
+           "   -no-fix-bad     Do not fix bad pixels\n"
+           "   -no-tone-curve  Do not apply log-like tone curve (default: enabled)\n"
+           "   -sgain          Apply spatial gain (default except for Quattro)\n"
           "   -wb <WB>        Select white balance preset\n"
           "   -compress       Enable ZIP compression for DNG and TIFF output\n"
           "   -ocl            Use OpenCL\n"
@@ -197,6 +198,7 @@ int main(int argc, char *argv[])
   char *wb = NULL;
   int compress = 0;
   int use_opencl = 0;
+  int use_tone_curve = 1;  /* Default: enabled */
   char *outdir = NULL;
   x3f_return_t ret;
 
@@ -263,6 +265,8 @@ int main(int argc, char *argv[])
       denoise = 0;
     else if (!strcmp(argv[i], "-no-sgain"))
       apply_sgain = 0;
+    else if (!strcmp(argv[i], "-no-tone-curve"))
+      use_tone_curve = 0;
     else if (!strcmp(argv[i], "-sgain"))
       apply_sgain = 1;
     else if ((!strcmp(argv[i], "-wb")) && (i+1)<argc)
@@ -408,7 +412,8 @@ int main(int argc, char *argv[])
       ret_dump = x3f_dump_raw_data_as_tiff(x3f, tmpfile,
 					   color_encoding,
 					   crop, fix_bad, denoise, sgain, wb,
-					   compress);
+					   compress,
+					   use_tone_curve);
       break;
     case DNG:
       x3f_printf(INFO, "Dump RAW as DNG to %s\n", outfile);

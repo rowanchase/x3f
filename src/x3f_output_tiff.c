@@ -152,7 +152,8 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
 				       int denoise,
 				       int apply_sgain,
 				       char *wb,
-				       int compress)
+				       int compress,
+				       int use_tone_curve)
 {
   x3f_area16_t image;
   TIFF *f_out = TIFFOpen(outfilename, "w");
@@ -162,7 +163,7 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
 
   if (!x3f_get_image(x3f, &image, NULL, encoding,
 		     crop, fix_bad, denoise, apply_sgain,
-		     wb)) {
+		     wb, use_tone_curve)) {
     TIFFClose(f_out);
     return X3F_ARGUMENT_ERROR;
   }

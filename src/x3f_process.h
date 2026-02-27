@@ -38,7 +38,8 @@ extern int x3f_get_image(x3f_t *x3f,
 			 int fix_bad,
 			 int denoise,
 			 int apply_sgain,
-			 char *wb);
+			 char *wb,
+			 int use_tone_curve);
 
 extern int x3f_get_preview(x3f_t *x3f,
 			   x3f_area16_t *image,
@@ -47,5 +48,6 @@ extern int x3f_get_preview(x3f_t *x3f,
 			   int apply_sgain,
 			   char *wb,
 			   uint32_t max_width,
-			   x3f_area8_t *preview);
+			   x3f_area8_t *preview,
+			   int use_tone_curve);
 #endif

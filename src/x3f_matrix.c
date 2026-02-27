@@ -321,6 +321,77 @@ void x3f_sRGB_sigmoid_LUT(double *lut, int size, uint16_t max, double steepness,
   }
 }
 
+/* Log-like tone curve with soft highlight compression
+ * 
+ * This replaces the 2.5x exposure boost + gamma LUT with a single
+ * tone curve that lifts shadows/mid-tones while gently compressing
+ * highlights.
+ * 
+ * Parameters:
+ *   lut: output lookup table (65536 entries for 16-bit input)
+ *   size: table size (should be 65536)
+ *   max: maximum output value (65535 for 16-bit)
+ *   shadow_boost: controls shadow lift (2.0 = conservative, 3.0 = aggressive)
+ *   highlight_knee: where highlight compression starts (0.85-0.95)
+ */
+void x3f_log_tone_curve_LUT(double *lut, int size, uint16_t max, 
+                             double shadow_boost, double highlight_knee)
+{
+  int i;
+  double exp_k = exp(shadow_boost);
+  
+  for (i = 0; i < size; i++) {
+    /* Input in range [0, 1] */
+    double x = (double)i / (size - 1);
+    double y;
+    
+    /* Log-like curve for shadows and mid-tones */
+    /* y = log(1 + x*(e^k - 1)) / k */
+    y = log(1.0 + x * (exp_k - 1.0)) / shadow_boost;
+    
+    /* Soft highlight compression for x > highlight_knee */
+    if (x > highlight_knee) {
+      /* Linear blend between log curve and compressed highlight */
+      double t = (x - highlight_knee) / (1.0 - highlight_knee);
+      /* Compressed value: approaches 1.0 asymptotically */
+      double compressed = highlight_knee + (1.0 - highlight_knee) * (t / (t + 0.5));
+      /* Blend factor: stronger compression as we approach 1.0 */
+      double blend = t * t;  /* Quadratic blend */
+      y = y * (1.0 - blend) + compressed * blend;
+    }
+    
+    /* Clamp and scale to output range */
+    if (y < 0) y = 0;
+    if (y > 1) y = 1;
+    lut[i] = y * max;
+  }
+}
+
+/* Apply tone curve to RGB values in-place
+ * This is called when no-tone-curve option is NOT set
+ */
+void x3f_apply_tone_curve(double *rgb, double *tone_lut, int lut_size)
+{
+  int i;
+  for (i = 0; i < 3; i++) {
+    double x = rgb[i];
+    if (x < 0) x = 0;
+    if (x > 1) x = 1;
+    
+    /* LUT lookup with interpolation */
+    double index = x * (lut_size - 1);
+    int idx = (int)floor(index);
+    double frac = index - idx;
+    
+    if (idx < 0)
+      rgb[i] = tone_lut[0] / 65535.0;
+    else if (idx >= lut_size - 1)
+      rgb[i] = tone_lut[lut_size - 1] / 65535.0;
+    else
+      rgb[i] = (tone_lut[idx] + frac * (tone_lut[idx + 1] - tone_lut[idx])) / 65535.0;
+  }
+}
+
 uint16_t x3f_LUT_lookup(double *lut, int size, double val)
 {
   double index = val*(size - 1);
