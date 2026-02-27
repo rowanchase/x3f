@@ -16,6 +16,11 @@
 
 #define SEARCH_RADIUS 32  /* Quality priority: larger radius for better boundary analysis */
 
+/* Phase 2b: Soft-Knee and Texture Transfer Parameters */
+#define SOFT_KNEE_THRESHOLD 0.80f  /* Start compression at ~204/255 */
+#define TEXTURE_STRENGTH 1.0f       /* Full texture transfer */
+#define NEAR_CLIP_THRESHOLD 0.80f   /* Process near-clipped pixels for smooth transition */
+
 /* Create clipping map structure */
 x3f_clip_map_t* x3f_create_clip_map(int width, int height)
 {
@@ -321,8 +326,81 @@ void x3f_free_boundary_data(x3f_boundary_data_t *boundary)
 }
 
 /* =========================================================================
- * Phase 2: Multi-Channel Highlight Reconstruction
+ * Phase 2b: Soft-Knee Compression and Texture Transfer Helper Functions
  * ========================================================================= */
+
+/* Soft-knee highlight compression using tanh-like function
+ * Maps [threshold, infinity] -> [threshold, 1.0] smoothly
+ */
+static float compress_highlight(float value, float threshold)
+{
+  if (value <= threshold) {
+    return value;
+  }
+  
+  float spread = 1.0f - threshold;
+  /* Tanh-like compression: maps excess values into shoulder region */
+  float excess = (value - threshold) / spread;
+  return threshold + spread * tanhf(excess);
+}
+
+/* Get local 3x3 average of a channel for texture ratio calculation */
+static float get_local_average(x3f_clip_map_t *map, int x, int y, int channel)
+{
+  float sum = 0.0f;
+  int count = 0;
+  int dx, dy;
+  
+  for (dy = -1; dy <= 1; dy++) {
+    for (dx = -1; dx <= 1; dx++) {
+      int nx = x + dx;
+      int ny = y + dy;
+      
+      /* Bounds check */
+      if (nx < 0 || nx >= map->width || ny < 0 || ny >= map->height) {
+        continue;
+      }
+      
+      int idx = ny * map->width + nx;
+      sum += map->pixels[idx].raw_values[channel];
+      count++;
+    }
+  }
+  
+  return (count > 0) ? (sum / count) : 0.0f;
+}
+
+/* Calculate texture ratio for detail transfer from unclipped channel
+ * Returns ratio representing local detail (e.g., 0.9 to 1.1)
+ */
+static float get_texture_ratio(x3f_clip_map_t *map, int x, int y, int channel)
+{
+  float local_avg = get_local_average(map, x, y, channel);
+  int idx = y * map->width + x;
+  float pixel_val = map->pixels[idx].raw_values[channel];
+  
+  /* Avoid division by zero */
+  if (local_avg < 0.001f) {
+    return 1.0f;
+  }
+  
+  return pixel_val / local_avg;
+}
+
+/* Find best unclipped source channel for texture transfer
+ * Returns channel index (0=Blue, 1=Green, 2=Red) or -1 if none available
+ */
+static int find_texture_source(x3f_pixel_clip_info_t *info)
+{
+  /* Prefer Red (2), then Green (1), then Blue (0) for texture source
+   * Red typically has best signal in highlights
+   */
+  if (!(info->state & CLIP_STATE_RED)) return 2;
+  if (!(info->state & CLIP_STATE_GREEN)) return 1;
+  if (!(info->state & CLIP_STATE_BLUE)) return 0;
+  
+  return -1; /* All channels clipped */
+}
 
 /* Spectral constants from Fent & Meldrum (2016) - QE at 500-575nm */
 static const float QE_BLUE = 10.6f;
@@ -343,8 +421,10 @@ static inline float lerp(float a, float b, float t)
   return a + t * (b - a);
 }
 
-/* Case 1: Single channel clipped - reconstruct from two unclipped channels */
+/* Case 1: Single channel clipped - reconstruct from two unclipped channels with texture transfer */
 static void reconstruct_single_channel(
+    x3f_clip_map_t *map,
+    int x, int y,
     x3f_pixel_clip_info_t *info,
     x3f_boundary_data_t *boundary,
     int idx,
@@ -358,6 +438,17 @@ static void reconstruct_single_channel(
   reconstructed[0] = info->raw_values[0];
   reconstructed[1] = info->raw_values[1];
   reconstructed[2] = info->raw_values[2];
+  
+  /* Find best unclipped source for texture transfer */
+  int texture_source = find_texture_source(info);
+  float texture_ratio = 1.0f;
+  
+  if (texture_source >= 0) {
+    texture_ratio = get_texture_ratio(map, x, y, texture_source);
+    /* Clamp texture ratio to prevent extreme values */
+    if (texture_ratio > 1.5f) texture_ratio = 1.5f;
+    if (texture_ratio < 0.5f) texture_ratio = 0.5f;
+  }
   
   switch (state) {
     case CLIP_STATE_BLUE:
@@ -381,8 +472,10 @@ static void reconstruct_single_channel(
           estimate_br = info->raw_values[2] * (QE_BLUE / QE_RED);
         }
         
-        /* Weighted average: prefer B/G as it's more stable (closer layers) */
-        reconstructed[0] = 0.6f * estimate_bg + 0.4f * estimate_br;
+        /* Weighted average with texture transfer */
+        reconstructed[0] = (0.6f * estimate_bg + 0.4f * estimate_br) * texture_ratio;
+        /* Clamp to prevent extreme values from texture amplification */
+        if (reconstructed[0] > 2.0f) reconstructed[0] = 2.0f;
       }
       break;
       
@@ -407,8 +500,9 @@ static void reconstruct_single_channel(
           estimate_gr = info->raw_values[2] * (QE_GREEN / QE_RED);
         }
         
-        /* Average the two estimates */
-        reconstructed[1] = (estimate_bg + estimate_gr) / 2.0f;
+        /* Average with texture transfer */
+        reconstructed[1] = ((estimate_bg + estimate_gr) / 2.0f) * texture_ratio;
+        if (reconstructed[1] > 2.0f) reconstructed[1] = 2.0f;
       }
       break;
       
@@ -433,8 +527,9 @@ static void reconstruct_single_channel(
           estimate_gr = info->raw_values[1] * (QE_RED / QE_GREEN);
         }
         
-        /* Average the two estimates */
-        reconstructed[2] = (estimate_br + estimate_gr) / 2.0f;
+        /* Average with texture transfer */
+        reconstructed[2] = ((estimate_br + estimate_gr) / 2.0f) * texture_ratio;
+        if (reconstructed[2] > 2.0f) reconstructed[2] = 2.0f;
       }
       break;
       
@@ -446,13 +541,17 @@ static void reconstruct_single_channel(
   /* Apply smoothstep blending based on distance to boundary (30% zone) */
   blend = smoothstep(0.0f, 0.3f * max_dist, info->distance_to_boundary);
   
-  output[0] = lerp(info->raw_values[0], reconstructed[0], blend);
-  output[1] = lerp(info->raw_values[1], reconstructed[1], blend);
-  output[2] = lerp(info->raw_values[2], reconstructed[2], blend);
+  /* Apply soft-knee compression to reconstructed highlights */
+  for (int c = 0; c < 3; c++) {
+    float blended = lerp(info->raw_values[c], reconstructed[c], blend);
+    output[c] = compress_highlight(blended, SOFT_KNEE_THRESHOLD);
+  }
 }
 
-/* Case 2: Two channels clipped - simplified spectral estimation (no hierarchy) */
+/* Case 2: Two channels clipped - simplified spectral estimation with texture transfer */
 static void reconstruct_two_channels(
+    x3f_clip_map_t *map,
+    int x, int y,
     x3f_pixel_clip_info_t *info,
     float *output)
 {
@@ -465,27 +564,38 @@ static void reconstruct_two_channels(
   reconstructed[1] = info->raw_values[1];
   reconstructed[2] = info->raw_values[2];
   
+  /* Find best unclipped source for texture transfer */
+  int texture_source = find_texture_source(info);
+  float texture_ratio = 1.0f;
+  
+  if (texture_source >= 0) {
+    texture_ratio = get_texture_ratio(map, x, y, texture_source);
+    /* Clamp texture ratio to prevent extreme values */
+    if (texture_ratio > 1.5f) texture_ratio = 1.5f;
+    if (texture_ratio < 0.5f) texture_ratio = 0.5f;
+  }
+  
   switch (state) {
     case CLIP_STATE_BG:
-      /* Blue+Green clipped, Red valid - estimate from Red */
+      /* Blue+Green clipped, Red valid - estimate from Red with texture */
       reconstructed[2] = info->raw_values[2]; /* Red preserved */
-      /* Conservative estimates from spectral response */
-      reconstructed[0] = info->raw_values[2] * (QE_BLUE / QE_RED) * 0.75f;
-      reconstructed[1] = info->raw_values[2] * (QE_GREEN / QE_RED) * 0.95f;
+      /* Conservative estimates from spectral response with texture */
+      reconstructed[0] = info->raw_values[2] * (QE_BLUE / QE_RED) * 0.75f * texture_ratio;
+      reconstructed[1] = info->raw_values[2] * (QE_GREEN / QE_RED) * 0.95f * texture_ratio;
       break;
       
     case CLIP_STATE_BR:
-      /* Blue+Red clipped, Green valid - estimate from Green */
+      /* Blue+Red clipped, Green valid - estimate from Green with texture */
       reconstructed[1] = info->raw_values[1]; /* Green preserved */
-      reconstructed[0] = info->raw_values[1] * (QE_BLUE / QE_GREEN) * 0.95f;
-      reconstructed[2] = info->raw_values[1] * (QE_RED / QE_GREEN) * 1.05f;
+      reconstructed[0] = info->raw_values[1] * (QE_BLUE / QE_GREEN) * 0.95f * texture_ratio;
+      reconstructed[2] = info->raw_values[1] * (QE_RED / QE_GREEN) * 1.05f * texture_ratio;
       break;
       
     case CLIP_STATE_GR:
-      /* Green+Red clipped, Blue valid - estimate from Blue */
+      /* Green+Red clipped, Blue valid - estimate from Blue with texture */
       reconstructed[0] = info->raw_values[0]; /* Blue preserved */
-      reconstructed[1] = info->raw_values[0] * (QE_GREEN / QE_BLUE) * 1.05f;
-      reconstructed[2] = info->raw_values[0] * (QE_RED / QE_BLUE) * 0.85f;
+      reconstructed[1] = info->raw_values[0] * (QE_GREEN / QE_BLUE) * 1.05f * texture_ratio;
+      reconstructed[2] = info->raw_values[0] * (QE_RED / QE_BLUE) * 0.85f * texture_ratio;
       break;
       
     default:
@@ -496,12 +606,14 @@ static void reconstruct_two_channels(
   /* Apply smoothstep blending based on distance to boundary (30% zone) */
   blend = smoothstep(0.0f, 0.3f * max_dist, info->distance_to_boundary);
   
-  output[0] = lerp(info->raw_values[0], reconstructed[0], blend);
-  output[1] = lerp(info->raw_values[1], reconstructed[1], blend);
-  output[2] = lerp(info->raw_values[2], reconstructed[2], blend);
+  /* Apply soft-knee compression to reconstructed highlights */
+  for (int c = 0; c < 3; c++) {
+    float blended = lerp(info->raw_values[c], reconstructed[c], blend);
+    output[c] = compress_highlight(blended, SOFT_KNEE_THRESHOLD);
+  }
 }
 
-/* Case 3: All channels clipped - graceful desaturation */
+/* Case 3: All channels clipped - graceful desaturation with soft-knee compression */
 static void reconstruct_all_channels(
     x3f_pixel_clip_info_t *info,
     double hl_sat_factor,
@@ -545,8 +657,10 @@ static void reconstruct_all_channels(
   /* For all-channel clipping, use stronger blending near boundary */
   float blend = smoothstep(0.0f, 0.3f * 32.0f, info->distance_to_boundary);
   
+  /* Apply soft-knee compression to all reconstructed values */
   for (c = 0; c < 3; c++) {
-    output[c] = lerp(info->raw_values[c], reconstructed[c], blend);
+    float blended = lerp(info->raw_values[c], reconstructed[c], blend);
+    output[c] = compress_highlight(blended, SOFT_KNEE_THRESHOLD);
   }
 }
 
@@ -584,7 +698,7 @@ int x3f_reconstruct_highlights(
   output->row_stride = width * 3;
   output->buf = output->data;  /* For proper cleanup */
   
-  x3f_printf(INFO, "Reconstructing highlights: %d clipped pixels...\n",
+  x3f_printf(INFO, "Reconstructing highlights: %d clipped pixels + near-clipped smoothing...\n",
              clip_map->total_clipped_pixels);
   
   /* Process all pixels */
@@ -594,23 +708,39 @@ int x3f_reconstruct_highlights(
       x3f_pixel_clip_info_t *info = &clip_map->pixels[idx];
       float reconstructed[3];
       int c;
+      int has_near_clipped = 0;
       
       if (info->state == CLIP_STATE_NONE) {
-        /* Unclipped pixel - copy directly */
+        /* Phase 2b: Check for near-clipped pixels (smooth transition zone) */
         for (c = 0; c < 3; c++) {
-          reconstructed[c] = info->raw_values[c];
+          if (info->raw_values[c] > NEAR_CLIP_THRESHOLD) {
+            has_near_clipped = 1;
+            break;
+          }
+        }
+        
+        if (has_near_clipped) {
+          /* Apply soft-knee compression to near-clipped channels */
+          for (c = 0; c < 3; c++) {
+            reconstructed[c] = compress_highlight(info->raw_values[c], SOFT_KNEE_THRESHOLD);
+          }
+        } else {
+          /* Unclipped pixel - copy directly */
+          for (c = 0; c < 3; c++) {
+            reconstructed[c] = info->raw_values[c];
+          }
         }
       } else {
         int num_clipped = x3f_count_clipped_channels(info->state);
         
         if (num_clipped == 1) {
-          /* Case 1: Single channel clipped */
-          reconstruct_single_channel(info, boundary, idx, reconstructed);
+          /* Case 1: Single channel clipped with texture transfer */
+          reconstruct_single_channel(clip_map, col, row, info, boundary, idx, reconstructed);
         } else if (num_clipped == 2) {
-          /* Case 2: Two channels clipped (simplified) */
-          reconstruct_two_channels(info, reconstructed);
+          /* Case 2: Two channels clipped with texture transfer */
+          reconstruct_two_channels(clip_map, col, row, info, reconstructed);
         } else {
-          /* Case 3: All channels clipped */
+          /* Case 3: All channels clipped with soft-knee compression */
           reconstruct_all_channels(info, hl_sat_factor, reconstructed);
         }
       }

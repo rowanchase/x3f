@@ -5,6 +5,105 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-02-27: Phase 2b - Soft-Knee Compression & Texture Transfer
+
+#### Summary
+Implemented Phase 2b of the Foveon X3F highlight recovery according to `doc/PHASE_2B_PLAN.md`. This phase adds **Soft-Knee Blending** to populate the 200-250 histogram range and **Texture Transfer** to restore detail using unclipped layers, bridging the gap between Phase 2's "hard value recovery" and SPP's "natural texture recovery".
+
+#### Problem Being Solved
+Phase 2 produces accurate flat colors but lacks texture and has a harsh clipping transition, resulting in a histogram pile-up at 255. Phase 2b addresses:
+1. **Histogram**: Pile-up at 255 from harsh clipping
+2. **Texture**: Flat, lifeless reconstructed highlights
+3. **Transition**: Abrupt boundary between clipped and unclipped regions
+
+#### Technical Implementation
+**Modified File:**
+- `src/x3f_highlight_recovery.c` - Added Phase 2b features:
+
+**New Configuration Parameters:**
+```c
+#define SOFT_KNEE_THRESHOLD 0.80f  /* Start compression at ~204/255 */
+#define TEXTURE_STRENGTH 1.0f       /* Full texture transfer */
+#define NEAR_CLIP_THRESHOLD 0.80f   /* Process near-clipped pixels */
+```
+
+**New Helper Functions:**
+1. **`compress_highlight()`** - Soft-knee compression using tanh-like function
+   - Linear region: 0.0 → 0.8 (unchanged)
+   - Compression region: maps [0.8, ∞) → [0.8, 1.0] smoothly
+   - Formula: `f(x) = T + (1-T) * tanh((x-T)/(1-T))`
+
+2. **`get_local_average()`** - 3x3 neighborhood average for texture context
+
+3. **`get_texture_ratio()`** - Extracts detail ratio (pixel/local_avg)
+   - Returns ratio representing local detail (e.g., 0.9 to 1.1)
+   - Captures high-frequency texture from unclipped channels
+
+4. **`find_texture_source()`** - Selects best unclipped channel (Red > Green > Blue)
+
+**Modified Reconstruction Functions:**
+
+1. **`reconstruct_single_channel()`** - Now includes:
+   - Texture transfer from unclipped channels
+   - Clamped texture ratio [0.5, 1.5] to prevent extremes
+   - Soft-knee compression on output
+   - Value clamping to prevent runaway amplification
+
+2. **`reconstruct_two_channels()`** - Now includes:
+   - Texture transfer from single valid channel
+   - Applied to both reconstructed channels
+   - Soft-knee compression on output
+
+3. **`reconstruct_all_channels()`** - Now includes:
+   - Soft-knee compression on desaturated output
+
+**Critical Main Loop Update:**
+`x3f_reconstruct_highlights()` now processes **near-clipped pixels** (values > 0.8):
+```c
+if (info->state == CLIP_STATE_NONE) {
+  /* Check for near-clipped pixels (smooth transition zone) */
+  for (c = 0; c < 3; c++) {
+    if (info->raw_values[c] > NEAR_CLIP_THRESHOLD) {
+      has_near_clipped = 1;
+      break;
+    }
+  }
+  
+  if (has_near_clipped) {
+    /* Apply soft-knee compression to near-clipped channels */
+    for (c = 0; c < 3; c++) {
+      reconstructed[c] = compress_highlight(info->raw_values[c], SOFT_KNEE_THRESHOLD);
+    }
+  }
+}
+```
+
+#### Foveon Advantage: Texture Transfer
+Unlike Bayer sensors, Foveon captures RGB at the same spatial location:
+- If **Blue is Clipped** but **Red is Valid**, Red's texture is a perfect predictor for Blue's missing texture
+- Reconstruct: `B_rec = B_flat_estimate * (R_pixel / R_local_avg)`
+- The ratio captures local detail independent of overall intensity
+
+#### Build & Test Results
+- **Build**: Clean compilation with no errors
+- **Test**: Successfully processes _P2M0927.X3F with highlight recovery
+- **Metrics**: RMSE 11.49 (baseline - Phase 2b targets highlight quality, not overall RMSE)
+
+#### Expected Improvements
+1. **Histogram**: Values populate 200-250 range instead of piling at 255
+2. **Texture**: Clipped regions show natural detail from unclipped channels
+3. **Visual**: Highlights appear textured and natural, not flat white patches
+4. **Transition**: Smooth gradation from near-clipped to fully clipped areas
+
+#### Documentation
+- Detailed journal: `notes/27-02-2026_phase2b_implementation.md`
+- Plan document: `doc/PHASE_2B_PLAN.md`
+
+#### Future Work (Phase 3)
+Poisson smoothing still planned, but Texture Transfer + Soft-Knee may reduce its necessity if boundaries blend well.
+
+---
+
 ### 2026-02-27: Phase 2 - Multi-Channel Highlight Reconstruction
 
 #### Summary
