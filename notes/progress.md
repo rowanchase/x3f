@@ -102,6 +102,30 @@ Unlike Bayer sensors, Foveon captures RGB at the same spatial location:
 #### Future Work (Phase 3)
 Poisson smoothing still planned, but Texture Transfer + Soft-Knee may reduce its necessity if boundaries blend well.
 
+#### Pipeline Ordering Investigation (Same Day)
+**Problem Discovered:** Phase 2b soft-knee compression is being applied BEFORE the 2.5x exposure compensation in `x3f_process.c`, effectively undoing its benefits.
+
+**Investigation:**
+1. **Attempt 1**: Moved compression to after 2.5x boost in x3f_process.c
+   - Result: Histogram got significantly worse (+93K to +207K more soft highlights)
+   - Issue: Threshold of 1.0 after boost compressed values back into soft range
+
+2. **Attempt 2**: Adjusted threshold to 2.5 (accounting for boost)
+   - Result: No change (most values ≤2.5)
+
+3. **Attempt 3**: Restored compression in highlight_recovery.c with adjusted threshold (0.32 = 0.8/2.5)
+   - Result: Same histogram as original
+
+**Root Cause:**
+- The tanh-based compression maps [threshold, ∞] → [threshold, 1.0]
+- With threshold=0.8: boosted values go to [2.0, 2.5], mapping to soft highlights (200-255)
+- The problem isn't WHERE compression happens, but HOW - tanh creates concentration instead of distribution
+
+**Current Status:**
+- Reverted to original approach (compression in highlight_recovery.c with threshold=0.8)
+- Documented findings in `notes/27-02-2026_pipeline_ordering.md`
+- Identified next steps: investigate LUT mapping, try alternative compression curves
+
 ---
 
 ### 2026-02-27: Phase 2 - Multi-Channel Highlight Reconstruction
