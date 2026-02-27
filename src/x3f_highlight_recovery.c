@@ -17,10 +17,12 @@
 #define SEARCH_RADIUS 32  /* Quality priority: larger radius for better boundary analysis */
 
 /* Phase 2b: Soft-Knee and Texture Transfer Parameters
- * Threshold adjusted to 0.32 (0.8/2.5) to account for 2.5x exposure compensation
- * in x3f_process.c. After compression to [0.32, 0.8] and 2.5x boost, values
- * will be in [0.8, 2.0] range, mapping to hard highlights rather than soft. */
-#define SOFT_KNEE_THRESHOLD 0.32f  /* 0.8/2.5 - adjusted for exposure compensation */
+ * CRITICAL: Threshold must be 0.38 (0.95/2.5) to avoid double compression.
+ * The LUT has built-in compression at 0.95 threshold (line 329 in x3f_matrix.c).
+ * Phase 2b tanh compression + 2.5x boost + LUT compression = triple compression!
+ * By setting threshold to 0.38, after 2.5x boost we stay at 0.95, avoiding LUT overflow path.
+ * This prevents the histogram concentration in soft highlights (200-229). */
+#define SOFT_KNEE_THRESHOLD 0.38f  /* 0.95/2.5 - calibrated to avoid LUT compression */
 #define TEXTURE_STRENGTH 1.0f       /* Full texture transfer */
 #define NEAR_CLIP_THRESHOLD 0.80f   /* Process near-clipped pixels for smooth transition */
 
@@ -332,8 +334,11 @@ void x3f_free_boundary_data(x3f_boundary_data_t *boundary)
  * Phase 2b: Soft-Knee Compression and Texture Transfer Helper Functions
  * ========================================================================= */
 
-/* Soft-knee highlight compression using tanh-like function
- * Maps [threshold, infinity] -> [threshold, 1.0] smoothly
+/* Soft-knee highlight compression using square root curve
+ * Gentler than tanh - preserves more differentiation between values
+ * Maps [threshold, infinity] -> [threshold, infinity] with gamma-like curve
+ * Formula: threshold + (value - threshold)^0.5 * spread^0.5
+ * This allows values > 1.0 to progress naturally to hard highlights
  */
 static float compress_highlight(float value, float threshold)
 {
@@ -341,10 +346,11 @@ static float compress_highlight(float value, float threshold)
     return value;
   }
   
+  float excess = value - threshold;
   float spread = 1.0f - threshold;
-  /* Tanh-like compression: maps excess values into shoulder region */
-  float excess = (value - threshold) / spread;
-  return threshold + spread * tanhf(excess);
+  
+  /* Square root compression: gentler than tanh */
+  return threshold + sqrtf(excess * spread);
 }
 
 /* Get local 3x3 average of a channel for texture ratio calculation */

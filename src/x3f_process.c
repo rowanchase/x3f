@@ -1036,8 +1036,8 @@ static int convert_data(x3f_t *x3f,
         }
 
         /* Highlight desaturation: in bright highlights, desaturate towards white
-           SPP desaturates highlights to produce cleaner whites
-           This prevents colored highlights (e.g., magenta) in clipped regions */
+            SPP desaturates highlights to produce cleaner whites
+            This prevents colored highlights (e.g., magenta) in clipped regions */
         {
           double max_channel = output[0];
           for (color = 1; color < 3; color++)

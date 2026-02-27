@@ -126,6 +126,24 @@ Poisson smoothing still planned, but Texture Transfer + Soft-Knee may reduce its
 - Documented findings in `notes/27-02-2026_pipeline_ordering.md`
 - Identified next steps: investigate LUT mapping, try alternative compression curves
 
+#### Triple Compression Investigation (Same Day)
+**Root Cause Identified:** The histogram concentration is caused by **triple compression**:
+1. Phase 2b tanh: [0.8, ∞] → [0.8, 1.0]
+2. 2.5x boost: [0.8, 1.0] → [2.0, 2.5]
+3. LUT compression (x3f_matrix.c:334-338): [0.95, ∞] → compressed using `t/(t+1)`
+
+**The Problem:** The LUT formula `0.95 + 0.05 * (t/(t+1))` approaches 1.0 asymptotically, squashing the entire [2.0, 2.5] range to nearly identical values (~0.998).
+
+**Attempts:**
+1. **Threshold calibration** (0.38 = 0.95/2.5): No improvement
+2. **Remove old highlight desaturation**: B improved (+66K→+16K), G worsened
+3. **Disable Phase 2b compression**: Same histogram (texture transfer produces 0.8-1.0 naturally)
+4. **Square root compression**: Back to original histogram
+
+**Key Insight:** The issue isn't the compression algorithm but the reconstructed value range combined with LUT's aggressive rolloff.
+
+**Documentation:** `notes/27-02-2026_compression_investigation.md`
+
 ---
 
 ### 2026-02-27: Phase 2 - Multi-Channel Highlight Reconstruction
