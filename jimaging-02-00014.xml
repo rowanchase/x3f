@@ -1,0 +1,1612 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE article PUBLIC "-//NLM//DTD Journal Publishing DTD v2.3 20070202//EN" "journalpublishing.dtd">
+<article xmlns:mml="http://www.w3.org/1998/Math/MathML" xmlns:xlink="http://www.w3.org/1999/xlink" xml:lang="en" article-type="rapid-communication" dtd-version="2.3">
+  <front>
+    <journal-meta>
+      <journal-id journal-id-type="publisher-id">jimaging</journal-id>
+      <journal-title>Journal of Imaging</journal-title>
+      <abbrev-journal-title abbrev-type="publisher">J. Imaging</abbrev-journal-title>
+      <abbrev-journal-title abbrev-type="pubmed">Journal of Imaging</abbrev-journal-title>
+      <issn pub-type="epub">2313-433X</issn>
+      <publisher>
+        <publisher-name>MDPI</publisher-name>
+      </publisher>
+    </journal-meta>
+    <article-meta>
+      <article-id pub-id-type="doi">10.3390/jimaging2020014</article-id>
+      <article-id pub-id-type="publisher-id">jimaging-02-00014</article-id>
+      <article-categories>
+        <subj-group>
+          <subject>Communication</subject>
+        </subj-group>
+      </article-categories>
+      <title-group>
+        <article-title>A Foveon Sensor/Green-Pass Filter Technique for Direct Exposure of Traditional False Color Images</article-title>
+      </title-group>
+      <contrib-group>
+        <contrib contrib-type="author">
+          <name>
+            <surname>Fent</surname>
+            <given-names>Livio</given-names>
+          </name>
+          <xref rid="af1-jimaging-02-00014" ref-type="aff">1</xref>
+          <xref rid="c1-jimaging-02-00014" ref-type="corresp">*</xref>
+        </contrib>
+        <contrib contrib-type="author">
+          <name>
+            <surname>Meldrum</surname>
+            <given-names>Al</given-names>
+          </name>
+          <xref rid="af2-jimaging-02-00014" ref-type="aff">2</xref>
+        </contrib>
+        <contrib contrib-type="editor">
+          <name>
+            <surname>Meola</surname>
+            <given-names>Carosena</given-names>
+          </name>
+          <role>Academic Editor</role>
+        </contrib>
+        <contrib contrib-type="editor">
+          <name>
+            <surname>Pajares Martinsanz</surname>
+            <given-names>Gonzalo</given-names>
+          </name>
+          <role>Academic Editor</role>
+        </contrib>
+      </contrib-group>
+      <aff id="af1-jimaging-02-00014"><label>1</label>Alberta Sustainable Resource Development (ret.), Edmonton, AB T5K 2G6, Canada</aff>
+      <aff id="af2-jimaging-02-00014"><label>2</label>Department of Physics, University of Alberta, Edmonton, AB T6G 2E1, Canada</aff>
+      <author-notes>
+        <corresp id="c1-jimaging-02-00014"><label>*</label> Correspondence: <email>livio.fent@mail.mcgill.ca</email>; Tel.: +1-780-616-9161</corresp>
+      </author-notes>
+      <pub-date pub-type="epub">
+        <day>10</day>
+        <month>05</month>
+        <year>2016</year>
+      </pub-date>
+      <pub-date pub-type="collection">
+        <month>06</month>
+        <year>2016</year>
+      </pub-date>
+      <volume>2</volume>
+      <issue>2</issue>
+      <elocation-id>14</elocation-id>
+      <history>
+        <date date-type="received">
+          <day>20</day>
+          <month>01</month>
+          <year>2016</year>
+        </date>
+        <date date-type="accepted">
+          <day>28</day>
+          <month>04</month>
+          <year>2016</year>
+        </date>
+      </history>
+      <permissions>
+        <copyright-statement>&#xA9; 2016 by the authors; licensee MDPI, Basel, Switzerland.</copyright-statement>
+        <copyright-year>2016</copyright-year>
+        <license>
+          <p>This article is an open access article distributed under the terms and conditions of the Creative Commons Attribution (CC-BY) license (http://creativecommons.org/licenses/by/4.0/).</p>
+        </license>
+      </permissions>
+      <abstract>
+        <p>A direct exposure technique to simulate the vegetation red-magenta hues associated with the traditional Kodak Ektachrome Professional Infrared EIR film is proposed. The method uses the Foveon sensor in full spectrum mode as found in Sigma cameras in combination with green-pass filters to reproduce the red-magenta hues of healthy vegetation without resorting to multi-exposures or channel swaps as is the current norm in single sensor cameras. An array of commercially available green-pass filters are analyzed via spectrophotmetric, densitometric and colorimetric measurements. A calibration technique using color-compensating filters is presented such that any green-pass filter will transmit green wavelengths to a set norm and ensure repeatability. A color model for the Foveon/green-pass filter is developed using quantum efficiencies to explain the color effects observed. Color similarities in near-infrared, blue and black and differences in red and green compared with Kodak Ektachrome Infrared film are discussed. Aerial photography examples are discussed, and the technique is proposed as a more direct means of obtaining traditional false color infrared imagery for pictorial and scientific applications when using Foveon type commercially available digital cameras.</p>
+      </abstract>
+      <kwd-group>
+        <kwd>color infrared film</kwd>
+        <kwd>Foveon sensor</kwd>
+        <kwd>transmission spectrophotometry</kwd>
+        <kwd>green filter</kwd>
+        <kwd>CC filters</kwd>
+        <kwd>UAV</kwd>
+        <kwd>remote sensing</kwd>
+        <kwd>false color infrared</kwd>
+      </kwd-group>
+    </article-meta>
+  </front>
+  <body>
+    <sec id="sec1-jimaging-02-00014" sec-type="intro">
+      <title>1. Introduction</title>
+      <p>Today&#x2019;s consumer-level digital color infrared imagery is quite different from the standard that was established by the Kodak Ektachrome professional infrared EIR film [<xref ref-type="bibr" rid="B1-jimaging-02-00014">1</xref>,<xref ref-type="bibr" rid="B2-jimaging-02-00014">2</xref>]. The traditional false color rendition associated with the film, particularly the red-magenta vegetation is generally replaced by a silvery looking vegetated landscape when exposing straight from the camera [<xref ref-type="bibr" rid="B3-jimaging-02-00014">3</xref>]. In pictorial photography, a near-infrared (NIR) pass filter, such as a Hoya R72, is generally used although camera infrared conversion firms do offer other filter possibilities. Still, the reddish magenta vegetation characteristics that the film exhibited and for which it was used extensively in scientific applications, particularly in remote sensing, have not been readily reproduced in pictorial photography, at least not without a degree of image post-processing [<xref ref-type="bibr" rid="B4-jimaging-02-00014">4</xref>]. If simply for continuity, a direct digital photographic exposure simulating a now defunct product would be welcomed in pictorial photography and may have some direct applications in more scientific endeavors, such as UAV remote sensing.</p>
+      <p>Kodak initially designed the color infrared film with the goal of camouflage detection [<xref ref-type="bibr" rid="B5-jimaging-02-00014">5</xref>]. The question of what color combination would maximize the tonal contrast of human-made objects amongst a vegetated background was foremost with the Kodak&#x2019;s scientists and engineers at the time [<xref ref-type="bibr" rid="B5-jimaging-02-00014">5</xref>]. Rendering vegetation red because of its NIR reflective properties via an ingenious dye-layer combination in the film emulsion provided the maximum hue contrast, thus the precedent for depicting NIR vegetation as red was set with this initial work. With Kodak discontinuing this film and its aerial equivalent in 2009, research has been active in devising methods to reproduce these hues for the general consumer and scientific applications, particularly for relatively small scale unmanned aerial vehicle (UAV) operations [<xref ref-type="bibr" rid="B6-jimaging-02-00014">6</xref>,<xref ref-type="bibr" rid="B7-jimaging-02-00014">7</xref>,<xref ref-type="bibr" rid="B8-jimaging-02-00014">8</xref>,<xref ref-type="bibr" rid="B9-jimaging-02-00014">9</xref>,<xref ref-type="bibr" rid="B10-jimaging-02-00014">10</xref>,<xref ref-type="bibr" rid="B11-jimaging-02-00014">11</xref>,<xref ref-type="bibr" rid="B12-jimaging-02-00014">12</xref>]. The traditional NIR effect is reproduced by sophisticated (and expensive) aerial survey cameras, such as the Leica ADS series, the Z/I DMC series, the Ultracam series, to name three, but they use multiple sensors to re-create the traditional film rendition by imaging and registering the infrared, red and green images in separate channels. Most consumer level cameras are restricted to a single sensor using the Bayer color filter array for color reproduction and are further hampered in recording near-infrared by the infrared cutoff filter (hot mirror) placed on the sensor to block wavelengths greater than 700 nm. The hot mirror can be removed from consumer-level cameras to allow the cameras&#x2019; access to the sensor&#x2019;s infrared sensitivity and a number of firms provide this modification service. These firms range from companies like Drones Imaging [<xref ref-type="bibr" rid="B13-jimaging-02-00014">13</xref>] and MosaicMill [<xref ref-type="bibr" rid="B14-jimaging-02-00014">14</xref>] that provide a specialized full camera conversion-remote sensing solution to firms such as LifePixel [<xref ref-type="bibr" rid="B15-jimaging-02-00014">15</xref>], Maxmax [<xref ref-type="bibr" rid="B16-jimaging-02-00014">16</xref>] and Kolari Vision [<xref ref-type="bibr" rid="B17-jimaging-02-00014">17</xref>] that will provide a range of NIR-capable cameras to the general consumer. Once the cameras have been modified the user has a number of methods to reproduce the traditional false color effect such as post-processing channel swaps using an infrablue (BG3) filter and separate (dual camera) NIR and RGB image registrations to reproduce the traditional red NIR film product hue [<xref ref-type="bibr" rid="B18-jimaging-02-00014">18</xref>,<xref ref-type="bibr" rid="B19-jimaging-02-00014">19</xref>].</p>
+      <p>Experimentation with the Sigma brand of cameras which use the Foveon sensor [<xref ref-type="bibr" rid="B6-jimaging-02-00014">6</xref>,<xref ref-type="bibr" rid="B20-jimaging-02-00014">20</xref>,<xref ref-type="bibr" rid="B21-jimaging-02-00014">21</xref>,<xref ref-type="bibr" rid="B22-jimaging-02-00014">22</xref>,<xref ref-type="bibr" rid="B23-jimaging-02-00014">23</xref>,<xref ref-type="bibr" rid="B24-jimaging-02-00014">24</xref>] has shown that the traditional Kodak color infrared (CIR) effect may, at least in the NIR portion of the spectrum, be possible from direct exposure without channel swapping or multiple exposures/image registrations. For many of the models that Sigma produces, there is the added advantage of being able to remove (and replace) the infrared cutoff filter within seconds allowing the sensor to register light in full spectrum mode, from about 400 nm to 1100 nm. The uniqueness of the Foveon sensor technology which, in general terms, mimics color film by registering three separate images in the blue, green, and red-NIR layers, allows for the general reproduction of the red NIR hues associated with the now defunct Kodak Professional Ektachrome Infrared EIR film and its aerial equivalent Kodak Aerochrome III Infrared 1443 film. Specifically, the effect is achieved by using a generic green-pass filter while sensing in full spectrum mode (infrared cutoff filter removed). Although green-pass filters have been one of many filters used in infrared filter effects [<xref ref-type="bibr" rid="B25-jimaging-02-00014">25</xref>], their transmission variability has not been fully investigated, particularly for achieving the Kodak CIR red NIR hue effect.</p>
+    </sec>
+    <sec id="sec2-jimaging-02-00014">
+      <title>2. Background</title>
+      <p>The Foveon sensor/green-pass filter combination achieves the CIR effect through an additive process whereby the infrared object is registered in the red-NIR layer of the sensor with the green-pass filter absorbing much of the blue and red wavelengths while variably transmitting (depending on the green-pass filter) the green and infrared wavelengths. The sensor is quite sensitive to the mitigating effects of the green-pass filter; with too much green in the image a cyanish-green image is recorded, with too little green the infrared (red/magenta hues) overwhelms the photograph. The green transmittance needs to be at the &#x2018;appropriate&#x2019; level (<xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>). The question can therefore be stated as follows; what is the proper level of green-pass filter transmittance for producing the Kodak CIR red NIR effect and how do we calibrate to that level for repeatability?</p>
+      <p>The initial investigations into using a green-pass filter to reproduce Kodak CIR hues, although promising, were quite unpredictable; not all green-pass filters were creating the intended infrared red vegetation exposure effect demonstrated in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>c. However, most of these green-pass filters were designated as &#x2018;X1&#x2019; filters. For example, the filter used in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>a is a Hoya 77 mm X1 while <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>c is a Hoya 49 mm X1, <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>b is actually a visually lighter green filter designated as a Hoya 77 mm X0. In monochrome film photography green-pass filters were typically used in portraiture to make skin tones appear more natural [<xref ref-type="bibr" rid="B26-jimaging-02-00014">26</xref>]. The spectral characteristics of these filters tended to vary to some degree, particularly among manufacturers, and that variability was acknowledged by photographers [<xref ref-type="bibr" rid="B27-jimaging-02-00014">27</xref>] but because the intended application was not critical the issues focussed mostly on exposure compensation and not spectral compensation. Since the green-pass filter was never intended to be used in color photography, small variations in green transmission were likely deemed to be inconsequential. This variability is, however, critical in applying green-pass filtration to achieve the Kodak CIR effect. A systematic sample evaluation of commercially available green-pass filters was required to quantify and calibrate for the variation.</p>
+    </sec>
+    <sec id="sec3-jimaging-02-00014">
+      <title>3. Materials and Methods</title>
+      <sec id="sec3dot1-jimaging-02-00014">
+        <title>3.1. Camera/Sensor</title>
+        <p>A Sigma SD1 Merrill camera fitted with a Sigma 18&#x2013;50 mm f/2.8 EX DC telephoto lens was used to assess the photographic performance of its internal Foveon sensor with the green filters. The lens was also fitted with a UV filter as is standard practice in photography. This filter blocked all wavelengths shorter than 390 nm from being registered by the sensor; however, the UV filter had little effect here since shorter wavelength radiation was largely absorbed by the green-pass filters as will be noted later. In addition, the sensitivity of Foveon sensor is at or beyond the extreme limit of its working range at such short wavelengths.</p>
+        <p>The Sigma camera has a number of preset white balance settings, including a customizable setting. Through a process of trial and error the 4100 K preset color temperature setting was found to provide the best image results at solar noon. There was no apparent change with images taken a couple of hours prior to solar noon and up to four hours after solar noon (July, latitude 53&#xB0;N). No imagery was taken at lower sun angles closer to sunrise or sunset. The 4100 K color temperature effect is attained by digital filtering in the camera and is the equivalent of filtering daylight (5500 K) through an 85C filter; the mired (micro-reciprocal-degrees) shift value is 62 for this conversion [<xref ref-type="bibr" rid="B28-jimaging-02-00014">28</xref>]. The 4100 K setting tends to emphasize the image signal in the red-NIR layer over the other two layers, particularly the blue, by a factor of about three. Although these settings can be modified in post-processing of raw-format imagery, it was important to find the best white balance setting at time of exposure so that our stated goal of &#x2018;direct exposure&#x2019; with minimal or no post-processing could be achieved.</p>
+        <p>As noted, the internal near-infrared blocking filter was removed from the camera to enable full spectrum sensitivity; this &#x2018;pre-filter&#x2019; also functions as a color optimizer in order to shape the spectral sensitivity curves of the sensor to the three types of human cones [<xref ref-type="bibr" rid="B19-jimaging-02-00014">19</xref>]. However, since the purpose of this experiment was to generate near-infrared images in <italic>false colors</italic>, the colorimetric standards that the Sigma camera is designed to achieve are irrelevant. The removal of the pre-filter allows the Foveon sensor spectral sensitivity characteristics to be used unaltered.</p>
+        <p>Although a data compilation process similar to that reported in Berra <italic>et al.</italic> [<xref ref-type="bibr" rid="B29-jimaging-02-00014">29</xref>] was devised for acquiring the spectral curves of the Foveon sensor, the data provided by Alternate Vision Corp. (<xref ref-type="fig" rid="jimaging-02-00014-f002">Figure 2</xref>) was used in the analysis because of its cross reference to different Foveon sensor versions. The information is essentially for the Foveon F13 sensor but has been modified slightly in the blue layer [<xref ref-type="bibr" rid="B30-jimaging-02-00014">30</xref>,<xref ref-type="bibr" rid="B31-jimaging-02-00014">31</xref>] so as to correspond to the Foveon F20 version; this is the version found in the Sigma SD1 Merrill camera model. The minor blue layer differences in the Foveon sensor versions may ultimately be inconsequential here because all the green filters tested absorb strongly in the blue.</p>
+      </sec>
+      <sec id="sec3dot2-jimaging-02-00014">
+        <title>3.2. Green-Pass Filters</title>
+        <p>Thirteen &#x2018;green&#x2019; standard commercially available filters were randomly purchased from photographic retail outlets to assess the green-pass variability across different filter brands (<xref ref-type="table" rid="jimaging-02-00014-t001">Table 1</xref>). Nine of the filters are designated as &#x2018;X1&#x2019; which are typical green filters used in photography; the X1 designation is generally understood to be associated with the Kodak Wratten series #11 filter. The remaining four filters are also &#x2018;green&#x2019; filters but have different designations. Most filters are glass except the Kodak Wratten #58 and Hoyarex 044 which are a gel and polycarbonate, respectively. The filters vary in diameter from 49 mm to 77 mm, and were generally held in the light path of the lens (77 mm diameter) during photographic testing.</p>
+      </sec>
+      <sec id="sec3dot3-jimaging-02-00014">
+        <title>3.3. Green-Pass Filter Spectrophotometry</title>
+        <p>The spectral characteristics of the green-pass filters were measured to provide a comprehensive transmission data set in the 400 nm to 1030 nm spectral range. Of particular interest was the performance of the filters in the near-infrared region since densitometry and colorimetry did not provide data in this area. The transmission spectra were measured by simply placing the filters in the air gap between two aligned optical transmission fibers separated by less than 1 cm. The &#x201C;input fiber&#x201D; was coupled to an LS-1-Cal reference light source (Ocean Optics) and the output fiber was attached to a USB2000 spectrometer from the same manufacturer. This method can accommodate all the various filter (and retainer) sizes and shapes. First, a reference spectrum was taken with no filter present, and then the filters were inserted and the corresponding transmission curves were calculated according to <italic>T = 100%&#x2219;(S<sub>&#x3BB;</sub></italic> &#x2013; <italic>D<sub>&#x3BB;</sub>)/(R<sub>&#x3BB;</sub></italic> &#x2013; <italic>D<sub>&#x3BB;</sub>)</italic> where <italic>S<sub>&#x3BB;</sub></italic> is the signal intensity with the filter present, <italic>R<sub>&#x3BB;</sub></italic> is the intensity of the reference light source with no filter present, and <italic>D<sub>&#x3BB;</sub></italic> represents the dark spectrum.</p>
+        <p>One filter (the H77X0) was observed to exhibit slightly more than 100% transmission in the NIR. This effect likely occurs because of refraction in the filter, which concentrates a slightly greater fraction of rays into the collection fiber than without the filter present. The ideal solution would be to use an equivalent &#x201C;reference substrate&#x201D; but this was deemed impractical, as the filters had various different thicknesses and possibly different indices of refraction. Thus, the overall transmission curves should be taken as accurate to within ~5% (<italic>i.e.</italic>, all of them will be slightly too high depending on the filter thickness).</p>
+        <p>The thirteen filters evaluated exhibited both general commonalities and differences (<xref ref-type="fig" rid="jimaging-02-00014-f003">Figure 3</xref>). As &#x2018;green-pass&#x2019; filters they all showed maximum transmission in the green from about 520 nm to 570 nm, varying mostly in degree of transmission. They also strongly absorbed in the blue region with most dropping below 5% transmission at 400 nm. The differences amongst the filters were most apparent in the red-NIR portion of their spectrum. Two distinct categories of transmissivity were discerned, one group (termed group 1) is characterized by a sharp increase near 700 nm and high NIR transmission. The second group of filters (group 2) showed relatively low red transmission and low-to-moderate transmission in the NIR.</p>
+        <p>Relating these curves to the filters and images initially shown in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>, it is apparent that the high NIR transmission of the Hoya 77 mm X0 (H77X0) filter overwhelms the image with an abundance of NIR radiation associated with the red-NIR sensor layer (<xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>b). Alternatively, the relatively high transmission of the Hoya 77 mm X1 (H77X1) filter in the green overwhelms the image with mostly a cyanish-green color. These two filters represent the extreme cases of the filters tested. The Hoya 49 mm X1 (H49X1) filter, which replicates the Kodak CIR effect &#x2018;straight out of the camera&#x2019; (<xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>c) is located between the extreme cases with its curve closer in shape to the H77X1 filter. The H49X1 filter was established as the reference filter as it required no compensation to produce the Kodak CIR-like red vegetation hue effect.</p>
+      </sec>
+      <sec id="sec3dot4-jimaging-02-00014">
+        <title>3.4. Green-Pass Filter Densitometry and Colorimetry</title>
+        <p>Densitometry and colorimetry provide us with practical methods for assessing and modifying the optical density and hue characteristics of materials. Densitometry further enables us to associate the visible values observed in the spectrophotometry with the color compensation filtering system generally used in photography. For example, the green transmission value for the W58 filter peaks at about 66% at 520 nm (<xref ref-type="fig" rid="jimaging-02-00014-f003">Figure 3</xref>). This corresponds to an optical density of 0.18 (<italic>D = &#x2212;log<sub>10</sub> T</italic>); the densitometric measured value is 0.16 which is within the error tolerance (&#xB1;0.02) of the densitometer.</p>
+        <p>The calibration process that follows is based on this measurement system. An X-Rite 310 color transmission densitometer was used to obtain Status A densitometry (cyan, magenta and yellow) transmission densities for each of the green-pass filters tested. An X-Rite eXact spectrophotometer (this spectrophotometer did not have NIR sensitivity) was also used to obtain the colorimetric values (<xref ref-type="table" rid="jimaging-02-00014-t002">Table 2</xref>, <xref ref-type="fig" rid="jimaging-02-00014-f004">Figure 4</xref>).</p>
+        <p>The colorimetric CIE L*a*b* color space values were derived for comparison and qualitative visual color description. Although a colorimetric approach was deemed unsuitable because the measurement purpose was not to relate the resultant color to an observer's perception but to the Foveon sensor&#x2019;s sensitivity (the CIE standard is also not applicable for near-IR wavelengths), the outlier filter points (<xref ref-type="fig" rid="jimaging-02-00014-f004">Figure 4</xref>) do correspond with the group 1 filters (high NIR transmission) in <xref ref-type="fig" rid="jimaging-02-00014-f003">Figure 3</xref>. Alternatively, the group 2 filters (low NIR transmission) are generally vertically aligned between CIE a* &#x2212;64 and &#x2212;69 indicating variation mostly in their &#x2018;yellowness&#x2019;. Metamerism, however, is evident in the differences in perceptual color and color transmission. For example, the S77X1 green-pass filter is colorimetrically close to the H77X1 and the B67X1 filters (<xref ref-type="fig" rid="jimaging-02-00014-f004">Figure 4</xref>) but it is densitometrically quite different from them (<xref ref-type="table" rid="jimaging-02-00014-t002">Table 2</xref>). In effect, it is the quantity and quality of the green-pass filter&#x2019;s transmitted light and not our color impression of it that produces the CIR effect [<xref ref-type="bibr" rid="B32-jimaging-02-00014">32</xref>].</p>
+        <p>The test photographs included a Kodak Color Separation strip (also called &#x2018;Color Control&#x2019;) that provided the color patches for a hue comparison between the photographed color renditions and the strip's descriptive primary and secondary colors; its white patch was also used for white balance measurement. As already noted, a neutral white balance was generally achieved with the camera white balance set at the &#x201C;Fluorescent&#x201D; setting or 4100 K. Included in the photographed scene with the Kodak color patch strip were green trees to provide an indication of the amount of near-infrared radiation being registered by the sensor.</p>
+        <p>Since the green transmission, and the consequent infrared effect, varied with the different filters, Kodak Color Compensating (CC) filters [<xref ref-type="bibr" rid="B28-jimaging-02-00014">28</xref>] were used to attenuate the amount of green light reaching the sensor [<xref ref-type="bibr" rid="B33-jimaging-02-00014">33</xref>]. CC filters enable density control by adding or subtracting color density in increments of 0.025, 0.05, 0.10, 0.20, 0.30, 0.40, and 0.50 units (Roscoe is another supplier of calibrated CC filters); these density units are multiplied by 100 to designate the CC filter. For example, if we wanted to absorb 0.20 density units of green layer transmission we would use a 20 magenta CC filter. Therefore, regardless of the green-pass filter used, the NIR red hue rendition for vegetation was repeatable once the optical density of the green-pass filter was measured and compensated for. These green-pass filters also varied in amounts of yellow and cyan in their transmission profiles; this component was corrected by appropriate blue and red CC filtration.</p>
+      </sec>
+      <sec id="sec3dot5-jimaging-02-00014">
+        <title>3.5. Calibration Procedure</title>
+        <p>Establishing a reference is critical in the calibration process. Through a trial and error exposure process, the filter that best reproduces the Kodak CIR effect straight out of the camera was the Hoya 49 mm X1 filter (<xref ref-type="fig" rid="jimaging-02-00014-f005">Figure 5</xref>).</p>
+        <p>The red/magenta hues of the trees coupled with a close to neutral white balance on the Kodak Color Control strip makes this the best filter in achieving the desired end result. The densitometric values for this green-pass filter (<xref ref-type="table" rid="jimaging-02-00014-t002">Table 2</xref>) are cyan (C) = 0.95, magenta (M) = 0.22, and yellow (Y) = 1.09, and the colorimetric L*, a*, and b* values are 62.2, &#x2212;64.1 and 52.2, respectively; it is considered a yellowish green-pass filter. The density values provide an objective measure of how much red, green and blue &#x201C;dye&#x201D; this filter contains, while the colorimetric values give a visual impression of its &#x201C;greenness&#x201D; in CIE L*a*b* color space. Proceeding to zero (subtract) the neutral density for each color, (0.22 density units are common to each color), we obtain C = 0.73, M = 0.0 and Y = 0.87. Since cyan and yellow produce green, the filter will have a density of 0.73 green and a small component of 0.14 yellow over and above the green density (0.87 &#x2212; 0.73 = 0.14). <xref ref-type="table" rid="jimaging-02-00014-t003">Table 3</xref> shows the comparative results of this effective green calculation along with the residual yellow or cyan cast for each of the filters assessed in this study. Since we are setting the Hoya 49 mm X1 filter as the reference, it requires no color compensation adjustment.</p>
+        <p>Using other brands of green-pass filter to obtain the Kodak CIR effects resulted in highly variable results; most often the desired effects are either muted or, as was noted earlier, not reproduced at all (<xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>a,b)). This indicates a high sensitivity to slight variations in green (and infrared) densities. <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>a was obtained with a Hoya 77 mm green X1 filter (H77X1). To calibrate the green transmission characteristics of this filter and match it to the reference filter (H49X1, <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>c) it needs to be attenuated. The process is as follows:
+		<list list-type="order">
+		<list-item><p>Obtain transmission status A densitometry readings for cyan = 1.69, magenta = 0.40, and yellow = 1.76. Visually, this filter can be described by the colorimetric values L* = 67.9, a* = &#x2212;68.9 and b* = 63.5, representing a slightly darker green-pass filter than the reference.</p></list-item>
+        <list-item><p>Subtract the neutral density from each color <italic>i.e.</italic>, the lowest common density value (M = 0.40), cyan = 1.29, magenta = 0.0, yellow = 1.36.</p></list-item>
+        <list-item><p>Determine the base green density (cyan and yellow produce green) by taking the lowest of the cyan and yellow densities; 1.29 is the base green density for this filter and it has a slight yellow cast of 0.07 density (1.36 &#x2212; 1.29 = 0.07).</p></list-item>
+        <list-item><p>Determine the difference in the green transmission of this filter to that of the reference H49X1 green-pass filter (1.29 &#x2212; 0.73 = 0.56). This filter is &#x201C;greener&#x201D; by 0.56 density units.</p></list-item>
+        <list-item><p>Use magenta color compensating filters to absorb the extra green (50 M + 5 M = 55 M filter pack).</p></list-item>
+        <list-item><p>Use blue color compensating filters to absorb the very slight 0.07 yellow (5 B).</p></list-item></list></p>
+        <p>The RGB values for the reference image and calibrated images are comparatively close. The white patch RGB values are 211, 248, 247 on the calibrated image (<xref ref-type="fig" rid="jimaging-02-00014-f006">Figure 6</xref>) and 205, 249, 224 on the reference image (<xref ref-type="fig" rid="jimaging-02-00014-f005">Figure 5</xref>). The discrepancy in the blue value is likely due to the higher yellow cast in the reference image. The RGB values for the all-important vegetation component (same location on images) are 170, 20, 66 for the calibrated image and 177, 20, 73 for the reference image.</p>
+        <p>Working through one final example with the Izumar 58 mm X1 green filter we obtain density values of C = 1.19, M = 0.29, and Y = 1.26 and colorimetric values are L* = 66.7, a* = &#x2212;66.5 and b* = 56; again, a relatively darker green-pass filter than the reference. Zeroing the neutral density by subtracting the lowest common value (0.29) from each of the colors results in C = 0.90 and Y = 0.97 (magenta is 0.0). This filter will have a green density of 0.90 with a slight cyan cast of 0.07 density units (<xref ref-type="table" rid="jimaging-02-00014-t003">Table 3</xref>). The main difference between the reference filter and this one is that it is a deeper green by about 0.90 &#x2212; 0.73 = 0.17 density units which is also equivalent to about a half-stop in exposure value. We proceed with the calibration procedure by compensating the additional green with a 15 M and 5 R color compensating filter (this is a 0.15 density magenta filter and 0.05 red density filter). This image&#x2019;s RGB values for the white patch and vegetation are 192, 244, 221 and 172, 22, 68, respectively (<xref ref-type="fig" rid="jimaging-02-00014-f007">Figure 7</xref>) and are comparatively close to the reference; white patch = 205, 249, 224, vegetation = 177, 20, 73.</p>
+        <p>These working examples show that in most of the products tested both the green and most often yellow, require adjustment. As noted earlier with the colorimetric descriptors, the X1 filters are visually a yellowish-green, varying in actual density by manufacturer. <xref ref-type="fig" rid="jimaging-02-00014-f008">Figure 8</xref> represents a graphical summary of the degree of color compensation required, by magenta if the filter is too green, by green if the filter is not green enough, by blue if the filter is too yellow and by red if the filter is too cyan.</p>
+        <p>This working method for recreating consistent near-infrared red/magenta hues with Sigma/Foveon cameras is structured as a one-time input process. Once the green filter transmission (densitometry) is known and calibrated (with CC filters), and the camera white balance is set to 4100 K, then no more post-processing of the images is needed to achieve the NIR hues. Output may be in raw format but JPEG or TIFF images work equally well since it is assumed that very little hue adjustment of the images is required; <xref ref-type="fig" rid="jimaging-02-00014-f005">Figure 5</xref>, <xref ref-type="fig" rid="jimaging-02-00014-f006">Figure 6</xref> and <xref ref-type="fig" rid="jimaging-02-00014-f007">Figure 7</xref> are, in fact, JPEG images straight from the camera.</p>
+      </sec>
+    </sec>
+    <sec id="sec4-jimaging-02-00014">
+      <title>4. Analysis and Discussion</title>
+      <sec id="sec4dot1-jimaging-02-00014">
+        <title>4.1. Kodak CIR Color Renditions</title>
+        <p>The Kodak CIR signature was the red rendition of highly NIR reflective vegetation; the Foveon/green-pass filter process simulates this false color in the same manner of the original film product with the appropriate CC filter adjustments. But what of other colors, how are they rendered in relation to the CIR film&#x2019;s false colors?</p>
+        <p>The Kodak CIR film reproduced colors as per the model in <xref ref-type="fig" rid="jimaging-02-00014-f009">Figure 9</xref>; blue was rendered black, green would be blue, red would be green, NIR would be red and yellow would be rendered cyanish-white depending on the luminosity. Film examples are difficult to replicate today (the original film is no longer available) but an example from personal archives (<xref ref-type="fig" rid="jimaging-02-00014-f010">Figure 10</xref>) provides some indication of how the film product transformed normal colors. The work by Eyton [<xref ref-type="bibr" rid="B34-jimaging-02-00014">34</xref>] is also a good source for comparison. The color renditions in <xref ref-type="fig" rid="jimaging-02-00014-f010">Figure 10</xref> are as predicted by the model except for the blacks and blues, both these colors should be black according to the <xref ref-type="fig" rid="jimaging-02-00014-f009">Figure 9</xref> but they are rendered a reddish-purple by the film. This is likely caused by the NIR reflective properties of the dye in the fabrics that are worn by the people in the images.</p>
+      </sec>
+      <sec id="sec4dot2-jimaging-02-00014">
+        <title>4.2. A Foveon/Green-Pass Filter Model</title>
+        <p>A Foveon/green-pass filter model similar Kodak CIR film can be constructed using the green-pass transmission curves, the color temperature modifier, and the Foveon QE sensor curves. recalling the filters used in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref> where the images produced were either too cyan-green (H77X1 filter), too reddish-orange (H77X0), or &#x2018;just right&#x2019; (H49X1), we can use the sensor quantum efficiency and filter information to model the color effects observed in the images. The CIR emulation process using the green-pass filters and the application of a color temperature filter [<xref ref-type="bibr" rid="B35-jimaging-02-00014">35</xref>,<xref ref-type="bibr" rid="B36-jimaging-02-00014">36</xref>] modifies the effective QE of the whole system (as compared to those of the sensor alone, as shown in <xref ref-type="fig" rid="jimaging-02-00014-f002">Figure 2</xref>). By multiplying the sensor QE values by the fractional transmission through the green pass and color temperature correction filters we obtain the &#x201C;effective&#x201D; system QE values (<xref ref-type="fig" rid="jimaging-02-00014-f011">Figure 11</xref>).</p>
+        <p>We next estimate the ratio of incident photons entering the R, G, and B bands, assuming a flat light source. These bands have different effective QE values and spectral widths. A simple estimate can be obtained by summing the area under the curves in <xref ref-type="fig" rid="jimaging-02-00014-f011">Figure 11</xref> in the wavelength ranges from 420&#x2013;490 nm (blue), 520&#x2013;575 nm (green), 600&#x2013;670 nm (red), and 600&#x2013;1030 nm (red-NIR) for each individual layer of the Foveon sensor, as shown in <xref ref-type="table" rid="jimaging-02-00014-t004">Table 4</xref>. These numbers simply represent the ratio of incident photons detected in each wavelength band, assuming a flat light source, for each sensor layer. They can be straightforwardly converted into an RGB color ratio, as shown by the resulting color patches in <xref ref-type="table" rid="jimaging-02-00014-t004">Table 4</xref>.</p>
+        <p>The outcome of this calculation shows that most of the image signal associated with the H77X1 filter will occur in the 500&#x2013;575 nm wavelength range (the green band), hence, a cyanish-green predominant hue will be observed (<xref ref-type="table" rid="jimaging-02-00014-t004">Table 4</xref>). The system response with the H77X0 filter is strong in the 600&#x2013;1030 wavelength interval (orange-red hue) while the H49X1 appears balanced between these two extremes. These derived results are representative of the hues we see in the image sequence displayed in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>.</p>
+        <p>The H49X1 filter (reference) displays other color anomalies associated with the Foveon/green-pass filter process that can be observed on the Kodak color separation strip photographed in <xref ref-type="fig" rid="jimaging-02-00014-f005">Figure 5</xref>. For example, a red reflecting object assumes a muted response in the Foveon/green-pass model, yet it is vibrant and pronounced on the color strip. Similarly, the green patch represents a &#x2018;purer&#x2019; green than the model&#x2019;s cyanish-green prediction. The blue and black patches are rendered very close to the model colors: they are dark blue and black, respectively. Blue and black fabrics, however, tend to more closely emulate the CIR film with black fabrics rendered a dark red while blue fabrics appear reddish violet (<xref ref-type="fig" rid="jimaging-02-00014-f012">Figure 12</xref>).</p>
+        <p>The primary colors on the Kodak color control strip would have been imaged quite differently with the CIR film; blue would be black, green would be blue, and red would be green (<xref ref-type="fig" rid="jimaging-02-00014-f009">Figure 9</xref>). It is evident that although the Foveon/green pass filter process substitutes well for CIR film in the NIR, it assumes a more RGB-like profile in the visible spectrum (blue excepted). In this sense, the Foveon CMOS/green-pass filter combination behaves more like an RGB/CIR film hybrid which introduces some unique imaging possibilities.</p>
+      </sec>
+      <sec id="sec4dot3-jimaging-02-00014">
+        <title>4.3. Color Compensation Filter Effects</title>
+        <p>The densitometric measurement process provided a means to calibrate the variable transmission profiles of all the green-pass filters to the reference H49X1 filter via CC filters. We now introduce these CC filters in the effective QE calculation and calibration of the H77X1 and H77X0 filters. <xref ref-type="fig" rid="jimaging-02-00014-f013">Figure 13</xref> shows the spectral transmission curves for each 50CC filter in which we see that the blue and green filters are absorptive in the NIR while the red, yellow, cyan, and magenta are generally transparent in the NIR. This property of the CC filters allows for a dual attenuation of the green and the red-NIR wavelengths which is important for calibrating the green-pass filter transmission characteristics.</p>
+        <p>Repeating the process used to sum the effective QE values and deriving the colors in the same way as before, we include the transmission effects of the color compensating filters (in addition to the green filter + color temperature filter combinations in the previous section). The densitometric calculation for calibrating the H77X1 and the H77X0 filters resulted in 55 M-5 B and 55 G-10 B, respectively (<xref ref-type="table" rid="jimaging-02-00014-t003">Table 3</xref>). Adding these filters&#x2019; transmission characteristics to the H77X1 and H77X0 filters allows us to derive color profiles that now resemble the H49X1 reference filter (<xref ref-type="table" rid="jimaging-02-00014-t005">Table 5</xref>). These two filters are, in effect, now calibrated.</p>
+      </sec>
+      <sec id="sec4dot4-jimaging-02-00014">
+        <title>4.4. Remote Sensing Applications</title>
+        <p>One of the most important uses of Kodak CIR film was in remote sensing. The Kodak Aerochrome III Infrared 1443 film and its predecessors were standards in camouflage detection, plant disease assessment, tree species differentiation, hydrological delineation <italic>etc.</italic> [<xref ref-type="bibr" rid="B37-jimaging-02-00014">37</xref>]. As noted in the introduction, many firms are now providing modified digital cameras with the NIR filter removed for remote sensing purposes, usually for uses with UAVs. The typical process for this work is to photograph with a red (Wratten #25) or infrablue (BG3) filter and perform a NNR (red/blue) or NBN (blue/green) channel swap in post processing [<xref ref-type="bibr" rid="B38-jimaging-02-00014">38</xref>], multi-sensor systems will generally replace the red channel with the NIR image data and insert the red and green image data into the green and blue channels, respectively (NRG); the process often leads to deriving normalized difference vegetation index (NDVI) values [<xref ref-type="bibr" rid="B39-jimaging-02-00014">39</xref>,<xref ref-type="bibr" rid="B40-jimaging-02-00014">40</xref>]. Sigma cameras with the Foveon sensor have been investigated for this purpose but most have been used in dual or multi-sensor camera mode (capturing both RGB and near IR) or in single camera mode with channel swapping [<xref ref-type="bibr" rid="B17-jimaging-02-00014">17</xref>,<xref ref-type="bibr" rid="B18-jimaging-02-00014">18</xref>].</p>
+        <p>Preliminary aerial field trials using the Foveon/green-pass filter technique were performed in September 2015 in an area of the mixed-wood Boreal forest of central Alberta, Canada. Low oblique images were obtained from a height of about 1500 m above ground level with the Sigma SD1 camera in full spectrum mode using the Berkeley 62 mm green X1 filter; a normal RGB camera (Sony DCS H3) was also used for comparison (<xref ref-type="fig" rid="jimaging-02-00014-f014">Figure 14</xref> and <xref ref-type="fig" rid="jimaging-02-00014-f015">Figure 15</xref>).</p>
+        <p>The results simulate the image hues associated with an NGR channel sequence common to dual camera platforms, NDVI modified cameras, or even the high end multi-sensor photogrammetric camera systems. <xref ref-type="fig" rid="jimaging-02-00014-f016">Figure 16</xref> shows a comparison of a Foveon green-pass filter image with one taken with a Z/I DMC 230 camera. Since the Foveon/green-pass filter technique is depicting some of the landscape in RGB mode, some of the hue differences are more pronounced, and may possibly, enhance overall interpretability. This can readily be observed in the pronounced differences between the deciduous and coniferous forest species where the hardwoods are prominently reflecting in the NIR band while the softwood signatures are actually a dark green and not a subdued red as is typical in NRG-channel-configured sensor systems. It is important to re-state that very little post processing (other than some contrast enhancement for visual appeal) was done to the Sigma/Foveon images&#x2014;the photos are JPEG format images, essentially straight out of the camera. These preliminary results suggest the need for further investigation because the process introduces a more data-rich technique that may be of benefit in forestry and in other remote sensing environmental applications. It also provides for a more direct exposure-to-application process without the intervening post-processing time and effort currently in use, which can translate to lower costs in image acquisition and processing.</p>
+      </sec>
+    </sec>
+    <sec id="sec5-jimaging-02-00014" sec-type="conclusions">
+      <title>5. Conclusions</title>
+      <p>The preliminary results of this study show that a direct exposure Kodak CIR like image with red/magenta NIR reflecting vegetation is possible with today&#x2019;s digital camera technology, specifically with the use of the Foveon sensor and green-pass filters. The calibration procedure, although relatively simple, does need some special instrumentation such as a densitometer but these instruments are quite common (graphics labs) and need to be used only once to obtain the base density data for the filter. Although Kodak CC filters were used in this study, similar filters are also commonly available from companies, such as Roscoe or Lee. For pictorial use, the Foveon/green-pass filter technique provides enough false color similarity to the Kodak Ektachrome Infrared EIR film to serve as a versatile substitute. For scientific applications more testing is needed with this technique in the specific field of inquiry and refine its application, particularly since the technique may in fact improve upon the original the film product.</p>
+      <p>The key point is to achieve an &#x2018;appropriate&#x2019; level of green filtration to induce the Kodak CIR effect and calibrate to that level. The appropriate level probably depends on the application but once the reference is chosen the process follows as outlined. Pictorially, the technique and reference image presented seems to adequately simulate the general character of the Kodak CIR film. For applications in remote sensing, forensics, medical, document verification, <italic>etc.,</italic> researchers could employ this technique, with adjustments, to determine the ideal green-pass filter density conditions for those areas in which the Kodak CIR film excelled. Certainly, one obvious advantage of this process is stability and repeatability; the CIR film was prone to variability in its NIR rendition because of storage conditions, age, and chemical processing. These variables are effectively eliminated in the digital CIR world.</p>
+      <p>Finally, some mention should be made that Sigma cameras have a relatively small commercial market niche (as of 2016) and therefore the technique presented is restricted to this camera user group. Custom camera applications using the Foveon sensor are possible with firms such as Alternate Vision Corp. but they would be specialized adaptations. In this regard, Bayer based systems should also be investigated to assess whether a direct exposure Kodak CIR effect can also be reproduced following a variation of the principles discussed. There are the challenges of the numerous makes and models commercially available, the variability of the Bayer color filter arrays [<xref ref-type="bibr" rid="B29-jimaging-02-00014">29</xref>,<xref ref-type="bibr" rid="B31-jimaging-02-00014">31</xref>], and that most of these cameras require hardware conversion (physical removal of the hot mirror from the sensor), nevertheless the investigations could lead to providing a traditional CIR-like continuity to a much larger photographer base.</p>
+    </sec>
+  </body>
+  <back>
+    <ack>
+      <title>Acknowledgments</title>
+      <p>The authors would like to thank Craig Coburn, University of Lethbridge, Geography Dept., for facilitating and helping with the compilation of the Foveon spectral sensitivity data, Bruce Edwards for availing the use of his Mooney 210 aircraft for the aerial oblique images, Jan Brouwer for his overall comments, particularly on the densitometry component, Kevin Petty/ Kim Koons of Tarin Resource Services for providing the vertical aerial image, and Dave Gilblom, Alternate Visions Inc., for his insightful comments regarding the Foveon sensor&#x2019;s spectral characteristics.</p>
+    </ack>
+    <notes>
+      <title>Author Contributions</title>
+      <p>Livio Fent conceived and designed the densitometric and colorimetric data acquisition and analysis; Al Meldrum conceived and designed the spectrophotometric data acquisition and analysis; Livio Fent conceived the study; Livio Fent and Al Meldrum wrote the paper.</p>
+    </notes>
+    <notes>
+      <title>Conflicts of Interest</title>
+      <p>The authors declare no conflict of interest.</p>
+    </notes>
+    <glossary>
+    <gloss-group>
+      <title>Abbreviations</title>
+      <p>The following abbreviations are used in this manuscript:
+	    <array>
+          <tbody>
+            <tr>
+              <td align="left" valign="middle">CIR</td>
+              <td align="left" valign="middle">Kodak Ektachrome Professional Infrared EIR film</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">UAV</td>
+              <td align="left" valign="middle">Unmanned Aerial Vehicle</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">NIR</td>
+              <td align="left" valign="middle">near-infrared</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">RGB</td>
+              <td align="left" valign="middle">Red Green Blue</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">CC</td>
+              <td align="left" valign="middle">Color Compensating</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">GSD</td>
+              <td align="left" valign="middle">Ground Sample Distance</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">QE</td>
+              <td align="left" valign="middle">Quantum Efficiency</td>
+            </tr>
+          </tbody>
+        </array></p>
+    </gloss-group>
+    </glossary>
+    <ref-list>
+      <title>References</title>
+      <ref id="B1-jimaging-02-00014">
+        <label>1.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <collab>Eastman Kodak</collab>
+          </person-group>
+          <source>Kodak Ektachrome Professional EIR Film</source>
+          <comment>Technical Publication TI-2323</comment>
+          <publisher-name>Eastman Kodak</publisher-name>
+          <publisher-loc>Rochester, NY, USA</publisher-loc>
+          <year>2005</year>
+        </citation>
+      </ref>
+      <ref id="B2-jimaging-02-00014">
+        <label>2.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <collab>Eastman Kodak</collab>
+          </person-group>
+          <source>Kodak Aerochrome III Infrared Film 1443</source>
+          <comment>Kodak Publication AS-77</comment>
+          <publisher-name>Eastman Kodak</publisher-name>
+          <publisher-loc>Rochester, NY, USA</publisher-loc>
+          <year>2005</year>
+        </citation>
+      </ref>
+      <ref id="B3-jimaging-02-00014">
+        <label>3.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Richards</surname>
+              <given-names>D.</given-names>
+            </name>
+          </person-group>
+          <article-title>The new infrared revolution</article-title>
+          <source>Popul. Photogr. Imaging.</source>
+          <year>2008</year>
+          <volume>72</volume>
+          <fpage>90</fpage>
+          <lpage>96</lpage>
+        </citation>
+      </ref>
+      <ref id="B4-jimaging-02-00014">
+        <label>4.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Milton</surname>
+              <given-names>E.J.</given-names>
+            </name>
+          </person-group>
+          <article-title>Low-cost ground-based digital infra-red photography</article-title>
+          <source>Int. J. Remote Sens.</source>
+          <year>2002</year>
+          <volume>23</volume>
+          <fpage>1001</fpage>
+          <lpage>1007</lpage>
+          <pub-id pub-id-type="doi">10.1080/01431160110104746</pub-id>
+        </citation>
+      </ref>
+      <ref id="B5-jimaging-02-00014">
+        <label>5.</label>
+        <citation citation-type="patent">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Jelly</surname>
+              <given-names>E.E.</given-names>
+            </name>
+            <name>
+              <surname>Wilder</surname>
+              <given-names>L.S.</given-names>
+            </name>
+          </person-group>
+          <article-title>Camouflage Detection</article-title>
+          <source>U.S. Patent</source>
+          <patent>US2,403,722 A</patent>
+          <day>9</day>
+          <month>July</month>
+          <year>1946</year>
+        </citation>
+      </ref>
+      <ref id="B6-jimaging-02-00014">
+        <label>6.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Verhoeven</surname>
+              <given-names>G.</given-names>
+            </name>
+          </person-group>
+          <article-title>Imaging the invisible using modified digital still cameras for straightforward and low-cost archaeological near-infrared photography</article-title>
+          <source>J. Archaeol. Sci.</source>
+          <year>2008</year>
+          <volume>35</volume>
+          <fpage>3087</fpage>
+          <lpage>3100</lpage>
+          <pub-id pub-id-type="doi">10.1016/j.jas.2008.06.012</pub-id>
+        </citation>
+      </ref>
+      <ref id="B7-jimaging-02-00014">
+        <label>7.</label>
+        <citation citation-type="confproc">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Gini</surname>
+              <given-names>R.</given-names>
+            </name>
+            <name>
+              <surname>Passioni</surname>
+              <given-names>D.</given-names>
+            </name>
+            <name>
+              <surname>Pinto</surname>
+              <given-names>L.</given-names>
+            </name>
+            <name>
+              <surname>Sona</surname>
+              <given-names>G.</given-names>
+            </name>
+          </person-group>
+          <article-title>Aerial images from an UAV system: 3D modelling and tree classification in a park area</article-title>
+          <source>Proceedings of the 2012 XXII ISPRS Congress on International Archives of Photogrammetry, Remote Sensing, and Spatial information Sciences</source>
+          <conf-loc>Melbourne, Australia</conf-loc>
+          <conf-date>25 August&#x2013;1 September 2012</conf-date>
+          <volume>Volume XXXIX-B1</volume>
+          <fpage>361</fpage>
+          <lpage>366</lpage>
+        </citation>
+      </ref>
+      <ref id="B8-jimaging-02-00014">
+        <label>8.</label>
+        <citation citation-type="confproc">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Gehrke</surname>
+              <given-names>R.</given-names>
+            </name>
+            <name>
+              <surname>Greiwe</surname>
+              <given-names>A.</given-names>
+            </name>
+          </person-group>
+          <article-title>RGBI Images with UAV and off-the-shelf compact cameras: An investigation of linear sensor characteristics</article-title>
+          <source>Proceedings of the 34th EARSeL Symposium, Special Issue</source>
+          <conf-loc>Warsaw, Poland</conf-loc>
+          <conf-date>16&#x2013;20 June 2014</conf-date>
+          <fpage>53</fpage>
+          <lpage>58</lpage>
+        </citation>
+      </ref>
+      <ref id="B9-jimaging-02-00014">
+        <label>9.</label>
+        <citation citation-type="confproc">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Aden</surname>
+              <given-names>S.T.</given-names>
+            </name>
+            <name>
+              <surname>Bialas</surname>
+              <given-names>J.P.</given-names>
+            </name>
+            <name>
+              <surname>Champion</surname>
+              <given-names>Z.</given-names>
+            </name>
+            <name>
+              <surname>Levin</surname>
+              <given-names>E.</given-names>
+            </name>
+            <name>
+              <surname>McCarty</surname>
+              <given-names>J.L.</given-names>
+            </name>
+          </person-group>
+          <article-title>Low cost infrared and near-infrared sensors for UAVs</article-title>
+          <source>Proceedings of the ISPRS Technical Commission I Symposium on International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences</source>
+          <conf-loc>Denver, CO, USA</conf-loc>
+          <conf-date>17&#x2013;20 November 2014</conf-date>
+          <volume>Volume XL-1</volume>
+          <fpage>1</fpage>
+          <lpage>7</lpage>
+        </citation>
+      </ref>
+      <ref id="B10-jimaging-02-00014">
+        <label>10.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Lebourgeois</surname>
+              <given-names>V.</given-names>
+            </name>
+            <name>
+              <surname>B&#xE9;gu&#xE9;</surname>
+              <given-names>A.</given-names>
+            </name>
+            <name>
+              <surname>Labb&#xE9;</surname>
+              <given-names>S.</given-names>
+            </name>
+            <name>
+              <surname>Mallavan</surname>
+              <given-names>B.</given-names>
+            </name>
+            <name>
+              <surname>Pr&#xE9;vost</surname>
+              <given-names>L.</given-names>
+            </name>
+            <name>
+              <surname>Roux</surname>
+              <given-names>B.</given-names>
+            </name>
+          </person-group>
+          <article-title>Can commercial digital cameras be used as multispectral sensors? A crop monitoring test</article-title>
+          <source>Sensors</source>
+          <year>2008</year>
+          <volume>8</volume>
+          <fpage>7300</fpage>
+          <lpage>7322</lpage>
+          <pub-id pub-id-type="doi">10.3390/s8117300</pub-id>
+        </citation>
+      </ref>
+      <ref id="B11-jimaging-02-00014">
+        <label>11.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Whitehead</surname>
+              <given-names>K.</given-names>
+            </name>
+            <name>
+              <surname>Hugenholtz</surname>
+              <given-names>C.H.</given-names>
+            </name>
+          </person-group>
+          <article-title>Remote sensing of the environment with small unmanned aircraft systems (UASs), part 1: A review of progress and challenges</article-title>
+          <source>J. Unmanned Veh. Syst.</source>
+          <year>2014</year>
+          <volume>2</volume>
+          <fpage>69</fpage>
+          <lpage>85</lpage>
+          <pub-id pub-id-type="doi">10.1139/juvs-2014-0006</pub-id>
+        </citation>
+      </ref>
+      <ref id="B12-jimaging-02-00014">
+        <label>12.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Aber</surname>
+              <given-names>J.S.</given-names>
+            </name>
+            <name>
+              <surname>Aber</surname>
+              <given-names>S.W.</given-names>
+            </name>
+            <name>
+              <surname>Buster</surname>
+              <given-names>L.</given-names>
+            </name>
+            <name>
+              <surname>Jensen</surname>
+              <given-names>W.E.</given-names>
+            </name>
+            <name>
+              <surname>Sleezer</surname>
+              <given-names>R.L.</given-names>
+            </name>
+          </person-group>
+          <article-title>Challenge of infrared kite aerial photography: A digital update</article-title>
+          <source>Trans. Kansas Acad. Sci.</source>
+          <year>2009</year>
+          <volume>112</volume>
+          <fpage>31</fpage>
+          <lpage>39</lpage>
+          <pub-id pub-id-type="doi">10.1660/062.112.0205</pub-id>
+        </citation>
+      </ref>
+      <ref id="B13-jimaging-02-00014">
+        <label>13.</label>
+        <citation citation-type="web">
+          <article-title>Drones Imaging</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.dronesimaging.com/en" ext-link-type="uri">http://www.dronesimaging.com/en</ext-link></comment>
+          <access-date>(accessed on 18 March 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B14-jimaging-02-00014">
+        <label>14.</label>
+        <citation citation-type="web">
+          <article-title>Mosaicmill</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.mosaicmill.com/" ext-link-type="uri">http://www.mosaicmill.com/</ext-link></comment>
+          <access-date>(accessed on 18 March 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B15-jimaging-02-00014">
+        <label>15.</label>
+        <citation citation-type="web">
+          <article-title>Lifepixel</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.lifepixel.com/" ext-link-type="uri">http://www.lifepixel.com/</ext-link></comment>
+          <access-date>(accessed on 18 March 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B16-jimaging-02-00014">
+        <label>16.</label>
+        <citation citation-type="web">
+          <article-title>LDP LLC&#x2014;maxmax.com</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.maxmax.com/" ext-link-type="uri">http://www.maxmax.com/</ext-link></comment>
+          <access-date>(accessed on 18 March 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B17-jimaging-02-00014">
+        <label>17.</label>
+        <citation citation-type="web">
+          <article-title>Kolari Vision</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://kolarivision.com/" ext-link-type="uri">http://kolarivision.com/</ext-link></comment>
+          <access-date>(accessed on 18 March 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B18-jimaging-02-00014">
+        <label>18.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Busch</surname>
+              <given-names>D.</given-names>
+            </name>
+          </person-group>
+          <source>Digital Infrared Pro Secrets</source>
+          <publisher-name>Thompson Course Technology</publisher-name>
+          <publisher-loc>Boston, MA, USA</publisher-loc>
+          <year>2007</year>
+          <fpage>217</fpage>
+          <lpage>220</lpage>
+        </citation>
+      </ref>
+      <ref id="B19-jimaging-02-00014">
+        <label>19.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Eyton</surname>
+              <given-names>J.R.</given-names>
+            </name>
+          </person-group>
+          <source>Color Infrared Imaging</source>
+          <publisher-name>Blurb Inc.</publisher-name>
+          <publisher-loc>San Francisco, CA, USA</publisher-loc>
+          <year>2010</year>
+        </citation>
+      </ref>
+      <ref id="B20-jimaging-02-00014">
+        <label>20.</label>
+        <citation citation-type="confproc">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Gehrke</surname>
+              <given-names>R.</given-names>
+            </name>
+            <name>
+              <surname>Greiwe</surname>
+              <given-names>A.</given-names>
+            </name>
+          </person-group>
+          <article-title>Multispectral image capturing with Foveon sensors</article-title>
+          <source>Proceedings of the International Archives of Photogrammetry, Remote Sensing, and Spatial Information Sciences, UAV g2013</source>
+          <conf-loc>Rostock, Germany</conf-loc>
+          <conf-date>4&#x2013;6 September 2013</conf-date>
+          <volume>Volume XL-1/W2</volume>
+          <fpage>151</fpage>
+          <lpage>156</lpage>
+        </citation>
+      </ref>
+      <ref id="B21-jimaging-02-00014">
+        <label>21.</label>
+        <citation citation-type="thesis">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Fai</surname>
+              <given-names>C.S.</given-names>
+            </name>
+          </person-group>
+          <article-title>Detecting near-UV and near-IR Wavelengths with the Foveon Image Sensor</article-title>
+          <source>Master&#x2019;s Thesis</source>
+          <publisher-name>Naval Postgraduate School</publisher-name>
+          <publisher-loc>Monterrey, CA, USA</publisher-loc>
+          <year>2004</year>
+        </citation>
+      </ref>
+      <ref id="B22-jimaging-02-00014">
+        <label>22.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Horne</surname>
+              <given-names>J.</given-names>
+            </name>
+          </person-group>
+          <article-title>Shooting Infrared with Sigma DSLRs</article-title>
+          <source>RPS J.</source>
+          <year>2007</year>
+          <volume>147</volume>
+          <fpage>225</fpage>
+          <lpage>225</lpage>
+        </citation>
+      </ref>
+      <ref id="B23-jimaging-02-00014">
+        <label>23.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Gilblom</surname>
+              <given-names>D.L.</given-names>
+            </name>
+            <name>
+              <surname>Ventura</surname>
+              <given-names>P.</given-names>
+            </name>
+            <name>
+              <surname>Yoo</surname>
+              <given-names>S.K.</given-names>
+            </name>
+          </person-group>
+          <article-title>Operation and performance of a color image sensor with layered diodes</article-title>
+          <source>Proc. SPIE</source>
+          <year>2003</year>
+          <volume>5074</volume>
+          <fpage>318</fpage>
+          <lpage>331</lpage>
+        </citation>
+      </ref>
+      <ref id="B24-jimaging-02-00014">
+        <label>24.</label>
+        <citation citation-type="confproc">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Lyon</surname>
+              <given-names>R.F.</given-names>
+            </name>
+            <name>
+              <surname>Hubel</surname>
+              <given-names>P.M.</given-names>
+            </name>
+          </person-group>
+          <article-title>Eyeing the camera: Into the next century</article-title>
+          <source>Proceedings of the 10th Color Imaging Conference Final Program and Proceedings, Society for Imaging Science and Technology</source>
+          <conf-loc>Scottsdale, AZ, USA</conf-loc>
+          <conf-date>13&#x2013;15 November 2003</conf-date>
+          <fpage>349</fpage>
+          <lpage>355</lpage>
+        </citation>
+      </ref>
+      <ref id="B25-jimaging-02-00014">
+        <label>25.</label>
+        <citation citation-type="web">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Kennard</surname>
+              <given-names>D.</given-names>
+            </name>
+          </person-group>
+          <article-title>Filter Comparison for Infrared, False Colour IR, and Full Spectrum Photography</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.webcitation.org/6eIVE15OB" ext-link-type="uri">http://www.webcitation.org/6eIVE15OB</ext-link></comment>
+          <access-date>(accessed on 4 January 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B26-jimaging-02-00014">
+        <label>26.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Peres</surname>
+              <given-names>M.R.</given-names>
+            </name>
+          </person-group>
+          <source>Focal Encyclopedia of Photography</source>
+          <publisher-name>Elsevier</publisher-name>
+          <publisher-loc>Amsterdam, The Netherlands</publisher-loc>
+          <year>2007</year>
+          <fpage>82</fpage>
+        </citation>
+      </ref>
+      <ref id="B27-jimaging-02-00014">
+        <label>27.</label>
+        <citation citation-type="web">
+          <article-title>Photo.net&#x2014;Green filter and Exposure Compensation</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://photo.net/black-and-white-photo-film-processing-forum/004tbS" ext-link-type="uri">http://photo.net/black-and-white-photo-film-processing-forum/004tbS</ext-link></comment>
+          <access-date>(accessed on 16 January 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B28-jimaging-02-00014">
+        <label>28.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <collab>Eastman Kodak Company</collab>
+          </person-group>
+          <source>Kodak Filters for Scientific and Technical Uses B-3</source>
+          <edition>1st ed.</edition>
+          <publisher-name>Eastman Kodak Company</publisher-name>
+          <publisher-loc>Rochester, NY, USA</publisher-loc>
+          <year>1976</year>
+        </citation>
+      </ref>
+      <ref id="B29-jimaging-02-00014">
+        <label>29.</label>
+        <citation citation-type="confproc">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Berra</surname>
+              <given-names>E.</given-names>
+            </name>
+            <name>
+              <surname>Gibson-Poole</surname>
+              <given-names>S.</given-names>
+            </name>
+            <name>
+              <surname>Macarthur</surname>
+              <given-names>A.</given-names>
+            </name>
+            <name>
+              <surname>Gaulton</surname>
+              <given-names>R.</given-names>
+            </name>
+            <name>
+              <surname>Hamilton</surname>
+              <given-names>A.</given-names>
+            </name>
+          </person-group>
+          <article-title>Estimation of the spectral sensitivity functions of un-modified and modified commercial off-the-shelf digital cameras to enable their use as a multispectral imaging system for UAVs</article-title>
+          <source>Proceedings of the International Conference on Unmanned Aerial Vehicles in Geomatics, the International Archives of the Photogrammetry, Remote Sensing and Spatial Information Sciences</source>
+          <conf-loc>Toronto, ON, Canada</conf-loc>
+          <conf-date>30 August&#x2013;2 September 2015</conf-date>
+          <volume>Volume XL-1/W4-207-2015</volume>
+          <fpage>207</fpage>
+          <lpage>214</lpage>
+        </citation>
+      </ref>
+      <ref id="B30-jimaging-02-00014">
+        <label>30.</label>
+        <citation citation-type="commun">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Gilblom</surname>
+              <given-names>D.</given-names>
+            </name>
+            <aff>Alternate Vision Inc., Tuscon, AZ, USA</aff>
+          </person-group>
+          <source>Personal communication</source>
+          <year>2016</year>
+        </citation>
+      </ref>
+      <ref id="B31-jimaging-02-00014">
+        <label>31.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Darrodi</surname>
+              <given-names>M.M.</given-names>
+            </name>
+            <name>
+              <surname>Finlayson</surname>
+              <given-names>G.</given-names>
+            </name>
+            <name>
+              <surname>Goodman</surname>
+              <given-names>T.</given-names>
+            </name>
+            <name>
+              <surname>Mackiewicz</surname>
+              <given-names>M.</given-names>
+            </name>
+          </person-group>
+          <article-title>Reference data set for camera spectral sensitivity estimation</article-title>
+          <source>J. Opt. Soc. Am. A</source>
+          <year>2015</year>
+          <volume>32</volume>
+          <fpage>381</fpage>
+          <lpage>391</lpage>
+          <pub-id pub-id-type="doi">10.1364/JOSAA.32.000381</pub-id>
+          <pub-id pub-id-type="pmid">26366649</pub-id>
+        </citation>
+      </ref>
+      <ref id="B32-jimaging-02-00014">
+        <label>32.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Shyu</surname>
+              <given-names>J.M.</given-names>
+            </name>
+            <name>
+              <surname>Parkkinen</surname>
+              <given-names>J.</given-names>
+            </name>
+          </person-group>
+          <article-title>Fundamentals of Color</article-title>
+          <source>Advanced Color Image Processing and Analysis</source>
+          <person-group person-group-type="editor">
+            <name>
+              <surname>Fernandez-Maloigne</surname>
+              <given-names>C.</given-names>
+            </name>
+          </person-group>
+          <publisher-name>Springer</publisher-name>
+          <publisher-loc>New York, NY, USA</publisher-loc>
+          <year>2013</year>
+          <fpage>11</fpage>
+          <lpage>12</lpage>
+        </citation>
+      </ref>
+      <ref id="B33-jimaging-02-00014">
+        <label>33.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Paine</surname>
+              <given-names>D.P.</given-names>
+            </name>
+            <name>
+              <surname>Kiser</surname>
+              <given-names>J.D.</given-names>
+            </name>
+          </person-group>
+          <source>Aerial Photography and Image Interpretation</source>
+          <publisher-name>John Wiley and Sons Inc.</publisher-name>
+          <publisher-loc>Hoboken, NJ, USA</publisher-loc>
+          <year>2012</year>
+          <comment>Chapter 14.2.4</comment>
+        </citation>
+      </ref>
+      <ref id="B34-jimaging-02-00014">
+        <label>34.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Eyton</surname>
+              <given-names>J.R.</given-names>
+            </name>
+          </person-group>
+          <source>Color Infrared</source>
+          <publisher-name>Blurb Inc.</publisher-name>
+          <publisher-loc>San Francisco, CA, USA</publisher-loc>
+          <year>2010</year>
+        </citation>
+      </ref>
+      <ref id="B35-jimaging-02-00014">
+        <label>35.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Beneson</surname>
+              <given-names>W.</given-names>
+            </name>
+            <name>
+              <surname>Harris</surname>
+              <given-names>J.W.</given-names>
+            </name>
+            <name>
+              <surname>Stocker</surname>
+              <given-names>H.</given-names>
+            </name>
+            <name>
+              <surname>Lute</surname>
+              <given-names>H.</given-names>
+            </name>
+          </person-group>
+          <source>Handbook of Physics</source>
+          <edition>4th ed.</edition>
+          <publisher-name>Springer-Verlag</publisher-name>
+          <publisher-loc>New York, NY, USA</publisher-loc>
+          <year>2002</year>
+          <fpage>401</fpage>
+          <lpage>402</lpage>
+        </citation>
+      </ref>
+      <ref id="B36-jimaging-02-00014">
+        <label>36.</label>
+        <citation citation-type="web">
+          <person-group person-group-type="author">
+            <collab>NOAA/NESDIS</collab>
+          </person-group>
+          <article-title>Planck Calculator for Infrared Remote Sensing</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.webcitation.org/6hG8yyPya" ext-link-type="uri">http://www.webcitation.org/6hG8yyPya</ext-link></comment>
+          <access-date>(accessed on 13 April 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B37-jimaging-02-00014">
+        <label>37.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <collab>Working Group for Orthophotography Planning</collab>
+          </person-group>
+          <source>A Guide for Understanding, Interpreting and Benefiting from CIR Imagery</source>
+          <publisher-name>North Carolina Geographic Information Coordinating Council</publisher-name>
+          <publisher-loc>North Carolina, USA</publisher-loc>
+		  <month>July</month>
+          <year>2011</year>
+        </citation>
+      </ref>
+      <ref id="B38-jimaging-02-00014">
+        <label>38.</label>
+        <citation citation-type="web">
+          <person-group person-group-type="author">
+            <collab>Public Lab</collab>
+          </person-group>
+          <article-title>Red Filter Rising</article-title>
+          <comment>Available online: <ext-link xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://www.webcitation.org/6edvkji4T" ext-link-type="uri">http://www.webcitation.org/6edvkji4T</ext-link></comment>
+          <access-date>(accessed on 18 January 2016)</access-date>
+        </citation>
+      </ref>
+      <ref id="B39-jimaging-02-00014">
+        <label>39.</label>
+        <citation citation-type="journal">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Hunt</surname>
+              <given-names>R.E.</given-names>
+            </name>
+            <name>
+              <surname>Hively</surname>
+              <given-names>D.W.</given-names>
+            </name>
+            <name>
+              <surname>Fujikawa</surname>
+              <given-names>S.J.</given-names>
+            </name>
+            <name>
+              <surname>Linden</surname>
+              <given-names>D.S.</given-names>
+            </name>
+            <name>
+              <surname>Daughtry</surname>
+              <given-names>C.S.T.</given-names>
+            </name>
+            <name>
+              <surname>McCarty</surname>
+              <given-names>G.W.</given-names>
+            </name>
+          </person-group>
+          <article-title>Acquisition of NIR-Green-Blue digital photographs from unmanned aircraft for crop monitoring</article-title>
+          <source>Remote Sens.</source>
+          <year>2010</year>
+          <volume>2</volume>
+          <fpage>290</fpage>
+          <lpage>305</lpage>
+          <pub-id pub-id-type="doi">10.3390/rs2010290</pub-id>
+        </citation>
+      </ref>
+      <ref id="B40-jimaging-02-00014">
+        <label>40.</label>
+        <citation citation-type="book">
+          <person-group person-group-type="author">
+            <name>
+              <surname>Rabatel</surname>
+              <given-names>G.</given-names>
+            </name>
+            <name>
+              <surname>Gorretta</surname>
+              <given-names>N.</given-names>
+            </name>
+            <name>
+              <surname>Labb&#xE9;</surname>
+              <given-names>S.</given-names>
+            </name>
+          </person-group>
+          <article-title>Getting NDVI spectral bands from a single standard RGB camera: A methodological approach</article-title>
+          <source>Advances in Artificial Intelligence</source>
+          <publisher-name>Springer</publisher-name>
+          <publisher-loc>Berlin/Heidelberg, Germany</publisher-loc>
+          <year>2011</year>
+          <fpage>333</fpage>
+          <lpage>342</lpage>
+        </citation>
+      </ref>
+    </ref-list>
+    <sec sec-type="display-objects">
+      <title>Figures and Tables</title>
+      <fig id="jimaging-02-00014-f001" position="float">
+        <label>Figure 1</label>
+        <caption>
+          <p>Image rendition of photographing through a deeper (more absorption) green-pass filter (<bold>a</bold>) a lighter (more transmission) green-pass filter (<bold>b</bold>) and one in between the two (<bold>c</bold>) using a Foveon sensor (Sigma SD1 Merrill) camera with its near-infrared cutoff filter removed. Exposure data is: (a) f/11, 1/60 s, ISO400; (b) f/11, 1/250 s, ISO400; (c) f/11, 1/125 s, ISO400, all images set at a white balance (WB) of 4100 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g001.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f002" position="float">
+        <label>Figure 2</label>
+        <caption>
+          <p>Spectral sensitivity curves for the Foveon sensor (courtesy of Alternate Vision Corp., Tuscon, Arizona, U.S.A.) [<xref ref-type="bibr" rid="B23-jimaging-02-00014">23</xref>] with modifications as per Darrodi <italic>et al.</italic> [<xref ref-type="bibr" rid="B31-jimaging-02-00014">31</xref>].</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g002.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f003" position="float">
+        <label>Figure 3</label>
+        <caption>
+          <p>Spectrophotometric curves for all the green-pass filters evaluated in the study. Two groups of green-pass filters are evident; those with relatively high NIR transmission (group 1) and those with relatively low NIR transmission (group 2). The reference filter, H49X1, is the black line.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g003.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f004" position="float">
+        <label>Figure 4</label>
+        <caption>
+          <p>Scatterplot of the colorimetric values show the relative visual differences between filters. The outlier filters generally correspond to the group 1 (high NIR transmission) spectrometric filter curves (<xref ref-type="fig" rid="jimaging-02-00014-f003">Figure 3</xref>).</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g004.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f005" position="float">
+        <label>Figure 5</label>
+        <caption>
+          <p>The reference image produced with the Hoya 49 mm X1 filter (H49X1). Exposure data is: f/16, 1/80 s, ISO400, 4100 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g005.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f006" position="float">
+        <label>Figure 6</label>
+        <caption>
+          <p>The Hoya 77 mm X1 filter image calibrated with a 55 M CC filter (5 B not added). The original image using this filter would have been generally overall cyanish-green as in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>a. Photo was exposed at f/16, 1/30 s, ISO400, 4100 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g006.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f007" position="float">
+        <label>Figure 7</label>
+        <caption>
+          <p>The Izumar 58 mm X1 filter image compensated (calibrated) with a 15 M CC filter. The 5 R was not added. Exposure data is: f/16,1/50 s, ISO400, 4100 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g007.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f008" position="float">
+        <label>Figure 8</label>
+        <caption>
+          <p>Scatterplot of green final densities as subtracted from the reference (H49X1) filter value, <italic>vs.</italic> Y or &#x2013;C densities (<xref ref-type="table" rid="jimaging-02-00014-t002">Table 2</xref>) as subtracted from the reference filter value (<xref ref-type="table" rid="jimaging-02-00014-t003">Table 3</xref>). The reference H49X1 filter represents the origin of the graph since 0.73 &#x2212; 0.73 = 0 for the y-axis and 0.14 &#x2212; 0.14 = 0 for the <italic>x</italic>-axis. As an illustration, the coordinates for our two worked examples are (&#x2212;0.07, 0.56) and (&#x2212;0.05, 0.17), the H77X1 and I58X1, respectively. Positive <italic>x</italic>-axis units represent Blue CC filter adjustment, negative <italic>x</italic>-axis units represent Red CC adjustment, positive <italic>y</italic>-axis units represent Magenta CC adjustment and negative <italic>y</italic>-axis units represent Green CC adjustment. Point W58 is not shown.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g008.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f009" position="float">
+        <label>Figure 9</label>
+        <caption>
+          <p>Kodak Ektachrome Professional Infrared EIR film false color schematic. Adapted from &#x2018;Kodak Ektachrome Professional Infrared EIR Film Publication TI-2323&#x2019; [<xref ref-type="bibr" rid="B1-jimaging-02-00014">1</xref>]. Used with permission from Eastman Kodak Company.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g009.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f010" position="float">
+        <label>Figure 10</label>
+        <caption>
+          <p>Photo pairs (<bold>a</bold>,<bold>b</bold>) and (<bold>c</bold>,<bold>d</bold>) were each taken on the same day with a true color negative film in photos (a,c) and Kodak Ektachrome Professional Infrared EIR film in photos (b,d); The black shorts and backpack in photo (a) are rendered purplish-red in the infrared photo (b); Similarly, photo sets (c,d) show how blue as in the pants and the center strip of the glider in photo (c) is depicted in a purplish-magenta hue in the infrared image (d). Exposure data is not available for these images.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g010a.tif"/>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g010b.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f011" position="float">
+        <label>Figure 11</label>
+        <caption>
+          <p>The spectral curves for (<bold>a</bold>) the Foveon sensor + the H77X1 filter + the 4100 K color temperature modifier; (<bold>b</bold>) the Foveon sensor + the H77X0 filter + the 4100 K color temperature modifier; and (<bold>c</bold>) the Foveon sensor + the reference H49X1 filter + the 4100 K color temperature modifier. The curves correspond to the sequence of images in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g011.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f012" position="float">
+        <label>Figure 12</label>
+        <caption>
+          <p>Photo (<bold>a</bold>) was taken with the Sigma SD1 in full spectrum mode, fluorescent white balance setting and using Hoya 49 mm X1 reference filter (no magenta CC filter); Photo (<bold>b</bold>) is a normal color photo taken with the same camera, its infrared blocking filter re-inserted and white balance set to daylight; the photos were taken on different days. Exposure data is: (a) = f/16; 1/60 s, ISO400, WB = 4100 K (b) = f/8, 1/800 s., ISO400, WB = 5500 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g012.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f013" position="float">
+        <label>Figure 13</label>
+        <caption>
+          <p>Transmission curves for the various CC filter. Data adapted from &#x2018;Kodak filters for scientific and technical uses&#x2019; [<xref ref-type="bibr" rid="B28-jimaging-02-00014">28</xref>].</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g013.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f014" position="float">
+        <label>Figure 14</label>
+        <caption>
+          <p>Low oblique images taken about 20 s apart with a Sony DSC-H3 typical RGB digital camera (<bold>a</bold>) and the Sigma SD1 in full spectrum mode and using the Berkeley 62 mm green X1 filter. Distinction between coniferous and deciduous tree stands is noticeable. The river has a yellowish hue (high sediment load) in (a) and is rendered in a light cyan in (<bold>b</bold>) as would have been expected from the traditional Kodak CIR film. The images are of the Athabasca River at location 54.44N, 114.47W. Exposure data is: (a) f/8, 1/160 s., ISO125, WB = 5600 K; (b) = f/5.6, 1/160 s, ISO400, WB = 4100 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g014.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f015" position="float">
+        <label>Figure 15</label>
+        <caption>
+          <p>Low oblique true color RGB (<bold>a</bold>) and Foveon/green-pass (<bold>b</bold>) images of an area of mixed-wood Boreal forest north-central Alberta, Canada. Acquisition conditions are the same as in <xref ref-type="fig" rid="jimaging-02-00014-f014">Figure 14</xref>. The range of hues rendered in (b) make the Foveon/green-pass filter technique well suited for forest image interpretation. The image location is 54.48N, 114.48W. Exposure data is: (a) f/8, 1/100 s, ISO125, WB = 5600 K; (b) f/5.6, 1/160 s, ISO400, WB = 4100 K.</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g015.tif"/>
+      </fig>
+      <fig id="jimaging-02-00014-f016" position="float">
+        <label>Figure 16</label>
+        <caption>
+          <p>Vertical image (<bold>a</bold>) was taken with a Z/I DMC 230 camera (30 cm GSD), the image is displayed with the NIR image in the red channel, red in the green channel and green in the blue channel (NRG); it is compared to the Foveon/green-pass filter low oblique seen previously (<bold>b</bold>). The oblique image is rotated to generally align with the vertical image. Labels x and y approximate similar locations on the images, both images were taken in 2015. Vertical imagery courtesy of Tarin Resource Services and Geographic Air Survey Ltd. (Edmonton, AB, Canada).</p>
+        </caption>
+        <graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-g016.tif"/>
+      </fig>
+      <table-wrap id="jimaging-02-00014-t001" position="float">
+        <object-id pub-id-type="pii">jimaging-02-00014-t001_Table 1</object-id>
+        <label>Table 1</label>
+        <caption>
+          <p>The thirteen &#x2018;green&#x2019; filters randomly selected for comparison.</p>
+        </caption>
+        <table>
+          <thead>
+            <tr>
+              <th align="left" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Filter Description</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Abbreviation</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Material</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Format</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td align="left" valign="middle">Hoyarex Green 044</td>
+              <td align="left" valign="middle">H044</td>
+              <td align="center" valign="middle">Polycarbonate</td>
+              <td align="center" valign="middle">Square 75 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Hoya 49 mm X1</td>
+              <td align="left" valign="middle">H49X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 49 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">C-N.P.S 49 mm X1</td>
+              <td align="left" valign="middle">C49X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 49 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Tiffen Green 1 49 mm</td>
+              <td align="left" valign="middle">T49H1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 49 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Kodak Wratten 58</td>
+              <td align="left" valign="middle">W58</td>
+              <td align="center" valign="middle">Gel</td>
+              <td align="center" valign="middle">Square 75 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Crown G 62 mm</td>
+              <td align="left" valign="middle">C62X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 62 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Berkeley 67 mm P01</td>
+              <td align="left" valign="middle">B67X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 67 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Izumar 58 m X1</td>
+              <td align="left" valign="middle">I58X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 58 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">NDG 72 mm X1</td>
+              <td align="left" valign="middle">N72X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 72 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Sing 77 mm X1</td>
+              <td align="left" valign="middle">S77X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 77 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Hoya 77 mm X1</td>
+              <td align="left" valign="middle">H77X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 77 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle">Vivitar 55 mm No. 11 X1</td>
+              <td align="left" valign="middle">V55X1</td>
+              <td align="center" valign="middle">Glass</td>
+              <td align="center" valign="middle">Circular 55 mm</td>
+            </tr>
+            <tr>
+              <td align="left" valign="middle" style="border-bottom:solid thin">Hoya 77 mm G (X0)</td>
+              <td align="left" valign="middle" style="border-bottom:solid thin">H77X0</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">Glass</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">Circular 77 mm</td>
+            </tr>
+          </tbody>
+        </table>
+      </table-wrap>
+      <table-wrap id="jimaging-02-00014-t002" position="float">
+        <object-id pub-id-type="pii">jimaging-02-00014-t002_Table 2</object-id>
+        <label>Table 2</label>
+        <caption>
+          <p>Densitometric (C, M, Y) and colorimetric (CIE L*a*b) measurements of some commercially available green-pass filters (various diameters) obtained for the study. The filters and their measurements are intended to show the variation in the actual color properties of these &#x2018;green-pass&#x2019; filters. The CIE L*a*b* color patch provides a visual impression of the filters&#x2019; green hues.</p>
+        </caption>
+        <table>
+          <tbody>
+            <tr>
+              <td align="center" valign="middle" style="border-top: hidden;border-bottom: hidden"><inline-graphic xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="jimaging-02-00014-i001.tif"/></td>
+            </tr>
+          </tbody>
+        </table>
+        <table-wrap-foot>
+          <fn>
+            <p><sup>1</sup> The CIE L*a*b* color space equivalents were generated in Adobe Photoshop CS3.</p>
+          </fn>
+        </table-wrap-foot>
+      </table-wrap>
+      <table-wrap id="jimaging-02-00014-t003" position="float">
+        <object-id pub-id-type="pii">jimaging-02-00014-t003_Table 3</object-id>
+        <label>Table 3</label>
+        <caption>
+          <p>Calculated base and final green densitometric values with derived color compensation calibration adjustments for all the green-pass filter brands. CC adjustments are relative to the reference filter (Hoya 49 mm X1). The letters in the color compensation column are associated with the standard notation and description of color compensation filters <italic>i.e.</italic>, M: magenta, B: blue, G: green, R: red. Heading letters in the other two columns (Y and &#x2013;C) refer to excess yellow (denoted by positive values) and cyan (denoted by negative values), respectively. The CC values for the Kodak Wratten 58 are considered beyond practical adjustment.</p>
+        </caption>
+        <table>
+          <thead>
+            <tr>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Filter Description</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Abbreviation</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Green Base</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Green Final</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Y or &#x2013;C Difference</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Zero Green</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Zero Y or &#x2013;C</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Color Compensation Adjustments</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td align="center" valign="middle">Hoyarex Green 044</td>
+              <td align="center" valign="middle">H044</td>
+              <td align="center" valign="middle">1.04</td>
+              <td align="center" valign="middle">0.42</td>
+              <td align="center" valign="middle">0.39</td>
+              <td align="center" valign="middle">&#x2212;0.31</td>
+              <td align="center" valign="middle">0.25</td>
+              <td align="center" valign="middle">30 G + 25 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Hoya 49mm X1</td>
+              <td align="center" valign="middle">H49X1</td>
+              <td align="center" valign="middle">0.95</td>
+              <td align="center" valign="middle">0.73</td>
+              <td align="center" valign="middle">0.14</td>
+              <td align="center" valign="middle">0.0</td>
+              <td align="center" valign="middle">0.0</td>
+              <td align="center" valign="middle">None</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">C-N.P.S 49 mm X1</td>
+              <td align="center" valign="middle">C49X1</td>
+              <td align="center" valign="middle">1.05</td>
+              <td align="center" valign="middle">0.79</td>
+              <td align="center" valign="middle">0.46</td>
+              <td align="center" valign="middle">0.06</td>
+              <td align="center" valign="middle">0.32</td>
+              <td align="center" valign="middle">5 M + 30 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Tiffen Green 1 49 mm</td>
+              <td align="center" valign="middle">T49H1</td>
+              <td align="center" valign="middle">0.92</td>
+              <td align="center" valign="middle">0.72</td>
+              <td align="center" valign="middle">0.65</td>
+              <td align="center" valign="middle">&#x2212;0.01</td>
+              <td align="center" valign="middle">0.51</td>
+              <td align="center" valign="middle">0 M + 50 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Kodak Wratten 58</td>
+              <td align="center" valign="middle">W58</td>
+              <td align="center" valign="middle">1.92</td>
+              <td align="center" valign="middle">1.76</td>
+              <td align="center" valign="middle">2.4</td>
+              <td align="center" valign="middle">1.03</td>
+              <td align="center" valign="middle">2.26</td>
+              <td align="center" valign="middle">100 M + 225 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Crown G 62 mm</td>
+              <td align="center" valign="middle">C62X1</td>
+              <td align="center" valign="middle">1.09</td>
+              <td align="center" valign="middle">0.84</td>
+              <td align="center" valign="middle">0.16</td>
+              <td align="center" valign="middle">0.11</td>
+              <td align="center" valign="middle">0.02</td>
+              <td align="center" valign="middle">10 M</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Berkeley 67 mm P01</td>
+              <td align="center" valign="middle">B67X1</td>
+              <td align="center" valign="middle">1.38</td>
+              <td align="center" valign="middle">1.06</td>
+              <td align="center" valign="middle">&#x2212;0.06</td>
+              <td align="center" valign="middle">0.33</td>
+              <td align="center" valign="middle">&#x2212;0.20</td>
+              <td align="center" valign="middle">30 M + 20 R</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Izumar 58 mm X1</td>
+              <td align="center" valign="middle">I58X1</td>
+              <td align="center" valign="middle">1.19</td>
+              <td align="center" valign="middle">0.9</td>
+              <td align="center" valign="middle">0.07</td>
+              <td align="center" valign="middle">0.17</td>
+              <td align="center" valign="middle">&#x2212;0.07</td>
+              <td align="center" valign="middle">15 M + 5 R</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">NDG 72 mm X1</td>
+              <td align="center" valign="middle">N72X1</td>
+              <td align="center" valign="middle">1.05</td>
+              <td align="center" valign="middle">0.76</td>
+              <td align="center" valign="middle">0.45</td>
+              <td align="center" valign="middle">0.03</td>
+              <td align="center" valign="middle">0.31</td>
+              <td align="center" valign="middle">5 M + 30 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Sing 77 mm X1</td>
+              <td align="center" valign="middle">S77X1</td>
+              <td align="center" valign="middle">2.57</td>
+              <td align="center" valign="middle">1.94</td>
+              <td align="center" valign="middle">0.3</td>
+              <td align="center" valign="middle">1.21</td>
+              <td align="center" valign="middle">0.16</td>
+              <td align="center" valign="middle">120 M + 15 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Hoya 77 mm X1</td>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">1.69</td>
+              <td align="center" valign="middle">1.29</td>
+              <td align="center" valign="middle">0.07</td>
+              <td align="center" valign="middle">0.56</td>
+              <td align="center" valign="middle">&#x2212;0.07</td>
+              <td align="center" valign="middle">55 M + 5 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">Vivitar 55 mm No. 11 X1</td>
+              <td align="center" valign="middle">V55X1</td>
+              <td align="center" valign="middle">0.39</td>
+              <td align="center" valign="middle">0.28</td>
+              <td align="center" valign="middle">0.94</td>
+              <td align="center" valign="middle">&#x2212;0.45</td>
+              <td align="center" valign="middle">0.80</td>
+              <td align="center" valign="middle">45 G + 80 B</td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle" style="border-bottom:solid thin">Hoya 77 mm G (X0)</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">H77X0</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">0.26</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">0.19</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">0.24</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">&#x2212;0.54</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">0.10</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">55 G + 10 B</td>
+            </tr>
+          </tbody>
+        </table>
+      </table-wrap>
+      <table-wrap id="jimaging-02-00014-t004" position="float">
+        <object-id pub-id-type="pii">jimaging-02-00014-t004_Table 4</object-id>
+        <label>Table 4</label>
+        <caption>
+          <p>Ratios representing the relative number of detectable photons for each Foveon layer at the specified wavelength intervals. The resultant colors are the hues one would obtain if these ratios were transformed to 8-bit RGB hues. The red band data is actually a subset of the red-NIR band since the Foveon sensor records red and NIR wavelengths in the same layer.</p>
+        </caption>
+        <table>
+          <thead>
+            <tr>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Filter</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Spectral Intervals (nm)</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Blue Foveon Layer</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Green Foveon Layer</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Red-NIR Foveon Layer</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Resultant Color</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">420&#x2013;490</td>
+              <td align="center" valign="middle">1.0</td>
+              <td align="center" valign="middle">0.7</td>
+              <td align="center" valign="middle">0.2</td>
+              <td align="center" valign="middle" style="background:#030F1C"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">500&#x2013;575</td>
+              <td align="center" valign="middle">7.3</td>
+              <td align="center" valign="middle">9.1</td>
+              <td align="center" valign="middle">6.1</td>
+              <td align="center" valign="middle" style="background:#99FEDD"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">600&#x2013;675</td>
+              <td align="center" valign="middle">0.2</td>
+              <td align="center" valign="middle">0.3</td>
+              <td align="center" valign="middle">0.4</td>
+              <td align="center" valign="middle" style="background:#17130B"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle" style="border-bottom:solid thin">H77X1</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">600&#x2013;1050</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">0.8</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">1.4</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">2.8</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;background:#3C1F11"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X0</td>
+              <td align="center" valign="middle">420&#x2013;490</td>
+              <td align="center" valign="middle">5.3</td>
+              <td align="center" valign="middle">3.4</td>
+              <td align="center" valign="middle">0.6</td>
+              <td align="center" valign="middle" style="background:#010710"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X0</td>
+              <td align="center" valign="middle">500&#x2013;575</td>
+              <td align="center" valign="middle">15.3</td>
+              <td align="center" valign="middle">19.4</td>
+              <td align="center" valign="middle">13.6</td>
+              <td align="center" valign="middle" style="background:#21342C"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X0</td>
+              <td align="center" valign="middle">600&#x2013;675</td>
+              <td align="center" valign="middle">7.5</td>
+              <td align="center" valign="middle">13.0</td>
+              <td align="center" valign="middle">19.7</td>
+              <td align="center" valign="middle" style="background:#3C2C1A"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle" style="border-bottom:solid thin">H77X0</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">600&#x2013;1050</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">28</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">53.6</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">120.1</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;background:#FF723B"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H49X1</td>
+              <td align="center" valign="middle">420&#x2013;490</td>
+              <td align="center" valign="middle">2.8</td>
+              <td align="center" valign="middle">1.9</td>
+              <td align="center" valign="middle">0.4</td>
+              <td align="center" valign="middle" style="background:#051825"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H49X1</td>
+              <td align="center" valign="middle">500&#x2013;575</td>
+              <td align="center" valign="middle">10.6</td>
+              <td align="center" valign="middle">13.2</td>
+              <td align="center" valign="middle">9.0</td>
+              <td align="center" valign="middle" style="background:#8AE1BF"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H49X1</td>
+              <td align="center" valign="middle">600&#x2013;675</td>
+              <td align="center" valign="middle">1.1</td>
+              <td align="center" valign="middle">1.9</td>
+              <td align="center" valign="middle">2.8</td>
+              <td align="center" valign="middle" style="background:#51331E"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle" style="border-bottom:solid thin">H49X1</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">600&#x2013;1050</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">4.0</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">7.3</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">14.6</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;background:#FF5A32"> </td>
+            </tr>
+          </tbody>
+        </table>
+      </table-wrap>
+      <table-wrap id="jimaging-02-00014-t005" position="float">
+        <object-id pub-id-type="pii">jimaging-02-00014-t005_Table 5</object-id>
+        <label>Table 5</label>
+        <caption>
+          <p>Comparative color results of non-adjusted and CC adjusted H77X1 and H77X0 green-pass filters used in <xref ref-type="fig" rid="jimaging-02-00014-f001">Figure 1</xref>. They are compared to the reference H49X1 filter.</p>
+        </caption>
+        <table>
+          <thead>
+            <tr>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Green-Pass Filter</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Spectral Wavelength Interval</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">Non-Adjusted Colors <sup>1</sup></th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">CC Filter <sup>2</sup> Adjusted Colors</th>
+              <th align="center" valign="middle" style="border-top:solid thin;border-bottom:solid thin">H49X1 Reference Colors</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">420&#x2013;490</td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#030C1C"> </td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#0C3C6D"> </td>
+              <td align="center" valign="middle" style="background:#051825"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">500&#x2013;575</td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#99FEDD"> </td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#8EECE2"> </td>
+              <td align="center" valign="middle" style="background:#80EBC0"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X1</td>
+              <td align="center" valign="middle">600&#x2013;675</td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#17130B"> </td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#614F30"> </td>
+              <td align="center" valign="middle" style="background:#51331E"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle" style="border-bottom:solid thin">H77X1</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">600&#x2013;1050</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;border-right:solid thin;background:#3C1F11"> </td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;border-right:solid thin;background:#FD8047"> </td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;background:#FF5D32"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X0</td>
+              <td align="center" valign="middle">420&#x2013;490</td>
+              <td align="center" valign="middle" style="background:#010710"> </td>
+              <td align="center" valign="middle" style="background:#030E20"> </td>
+              <td align="center" valign="middle" style="background:#051825"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X0</td>
+              <td align="center" valign="middle">500&#x2013;575</td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#21342C"> </td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#86D4B5"> </td>
+              <td align="center" valign="middle" style="background:#8AEBBF"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle">H77X0</td>
+              <td align="center" valign="middle">600&#x2013;675</td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#3C2C1A"> </td>
+              <td align="center" valign="middle" style="border-right:solid thin;background:#3E2D1A"> </td>
+              <td align="center" valign="middle" style="background:#51331E"> </td>
+            </tr>
+            <tr>
+              <td align="center" valign="middle" style="border-bottom:solid thin">H77X0</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin">600&#x2013;1050</td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;border-right:solid thin;background:#FD723B"> </td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;border-right:solid thin;background:#FF743C"> </td>
+              <td align="center" valign="middle" style="border-bottom:solid thin;background:#FF5D32"> </td>
+            </tr>
+          </tbody>
+        </table>
+        <table-wrap-foot>
+          <fn>
+            <p><sup>1</sup> Included from <xref ref-type="table" rid="jimaging-02-00014-t004">Table 4</xref> for comparison; <sup>2</sup> The CC filter adjustments are 55 M-5 B and 55 G-10 B for the H77X1 and H77X0, respectively (CC values from <xref ref-type="table" rid="jimaging-02-00014-t003">Table 3</xref>).</p>
+          </fn>
+        </table-wrap-foot>
+      </table-wrap>
+	</sec>
+  </back>
+</article>

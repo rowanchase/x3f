@@ -70,6 +70,15 @@ int x3f_analyze_boundaries(x3f_area16_t *image, x3f_clip_map_t *map,
 x3f_boundary_data_t* x3f_create_boundary_data(int width, int height);
 void x3f_free_boundary_data(x3f_boundary_data_t *boundary);
 
+/* Phase 2: Multi-channel highlight reconstruction */
+int x3f_reconstruct_highlights(
+    x3f_area16_t *image,
+    x3f_clip_map_t *clip_map,
+    x3f_boundary_data_t *boundary,
+    double hl_sat_factor,
+    x3f_area16_t *output
+);
+
 /* Utility: count bits in clipping state */
 static inline int x3f_count_clipped_channels(x3f_clip_state_t state) {
   return ((state & 1) ? 1 : 0) + ((state & 2) ? 1 : 0) + ((state & 4) ? 1 : 0);

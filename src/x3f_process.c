@@ -872,6 +872,55 @@ static int convert_data(x3f_t *x3f,
     }
   }
 
+  /* Phase 2: Multi-channel highlight reconstruction
+   * Reconstruct clipped pixels using boundary data and Foveon spectral response */
+  if (clip_map && clip_map->total_clipped_pixels > 0 && boundary_data) {
+    x3f_area16_t reconstructed_image;
+    
+    /* Use hl_sat_factor already retrieved at line 813 */
+    if (x3f_reconstruct_highlights(image, clip_map, boundary_data, 
+                                    hl_sat_factor, &reconstructed_image)) {
+      /* Debug output: Save reconstructed highlights as TIFF if DEBUG_HIGHLIGHTS defined */
+      #ifdef DEBUG_HIGHLIGHTS
+      {
+        extern int x3f_save_tiff(x3f_area16_t *image, const char *filename);
+        char debug_filename[256];
+        snprintf(debug_filename, sizeof(debug_filename), 
+                 "reconstructed_highlights_%dx%d.tif", 
+                 reconstructed_image.columns, reconstructed_image.rows);
+        if (x3f_save_tiff(&reconstructed_image, debug_filename)) {
+          x3f_printf(INFO, "Debug: Saved reconstructed highlights to %s\n", debug_filename);
+        }
+      }
+      #endif
+      
+      /* Replace original image data with reconstructed data for processing */
+      /* Note: We copy the data back to the original image buffer since 
+       * downstream processing expects data in the original buffer */
+      int r, c, ch;
+      for (r = 0; r < image->rows; r++) {
+        for (c = 0; c < image->columns; c++) {
+          for (ch = 0; ch < 3; ch++) {
+            /* Reconstructed data is in 16-bit normalized form, convert back 
+             * to raw space using the white/black levels */
+            float norm_val = reconstructed_image.data[(r * image->columns + c) * 3 + ch] / 65535.0f;
+            uint16_t raw_val = (uint16_t)(norm_val * (ilevels->white[ch] - ilevels->black[ch]) 
+                                          + ilevels->black[ch]);
+            image->data[r * image->row_stride + c * 3 + ch] = raw_val;
+          }
+        }
+      }
+      
+      /* Free the temporary reconstruction buffer */
+      free(reconstructed_image.data);
+      
+      x3f_printf(INFO, "Applied Phase 2 highlight reconstruction to %d pixels\n",
+                 clip_map->total_clipped_pixels);
+    } else {
+      x3f_printf(WARN, "Phase 2 highlight reconstruction failed, proceeding with original data\n");
+    }
+  }
+
   {
     double hl_blending_low, hl_blending_high, hl_restore_thresh;
     double hl_chan_thresh1, hl_chan_thresh2, hl_sat_factor;

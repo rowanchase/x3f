@@ -5,6 +5,80 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-02-27: Phase 2 - Multi-Channel Highlight Reconstruction
+
+#### Summary
+Implemented the core reconstruction algorithms for Foveon X3F highlight recovery. This phase uses Phase 1's boundary data to estimate values for clipped pixels using the unique three-layer Foveon sensor architecture.
+
+#### Technical Implementation
+**Modified Files:**
+- `src/x3f_highlight_recovery.h` - Added `x3f_reconstruct_highlights()` declaration
+- `src/x3f_highlight_recovery.c` - Phase 2 implementation with three case handlers:
+  - Case 1: Single channel clipped (ratio-based reconstruction)
+  - Case 2: Two channels clipped (spectral estimation from QE data)
+  - Case 3: All channels clipped (graceful desaturation)
+- `src/x3f_process.c` - Integration with pipeline, bug fix for NULL pointer dereference
+
+#### Key Features
+- **New Buffer Strategy**: Allocates separate output buffer for reconstructed image
+- **Spectral Estimation**: Uses Fent & Meldrum (2016) QE data (Blue=10.6, Green=13.2, Red=9.0)
+- **Smoothstep Blending**: 30% transition zone at clipping boundaries
+- **Always Enabled**: Automatically processes all Foveon images with clipped pixels
+- **Simplified Case 2**: Direct spectral estimation (hierarchical processing noted for future)
+
+#### Bug Fix: NULL Pointer Dereference
+**Issue**: Called `x3f_get_highlight_params()` with NULL pointers for unused parameters, but function writes to all parameters unconditionally.
+
+**Fix**: Used already-fetched `hl_sat_factor` from line 813 instead of calling function again.
+
+#### Test Results
+
+**_P2M0927.X3F (Standard case):**
+- Clipped pixels: 14,470 (0.09%)
+  - Single channel: 7,064 → reconstruct_single_channel()
+  - Two channels: 6,284 → reconstruct_two_channels()
+  - All channels: 1,122 → reconstruct_all_channels()
+- **Result**: SUCCESS - All 14,470 pixels reconstructed without crash
+
+**_P2M0936.X3F (Worst case - severe clipping):**
+- Clipped pixels: 652,921 (4.06% of image)
+  - Single channel: 131,656
+  - Two channels: 252,659
+  - All channels: 268,606
+- **Result**: SUCCESS - Handles large clipped regions (652K pixels) without issues
+
+**_P2M0928.X3F (Minimal clipping):**
+- Clipped pixels: 3,722 (0.02%)
+- **Result**: SUCCESS - Works with minimal clipping
+
+#### Quality Metrics (Initial Baseline)
+
+Comparing to SPP reference for _P2M0927.X3F:
+- RMSE: 11.49 (target: < 5.0)
+- MAE: 8.71
+- Per-channel MAE: R=7.43, G=7.20, B=11.50
+
+The RMSE is higher than target, which is expected for initial implementation. This provides a baseline for Phase 3 (Poisson smoothing) and further refinements.
+
+#### Build & Integration
+- Build: Clean (no compiler warnings)
+- No segfaults or crashes across all test files
+- Memory properly managed (allocation/deallocation)
+- Integrated seamlessly with existing pipeline
+
+#### Documentation
+- Created detailed Phase 2 journal: `notes/27-02-2026_phase2_complete.md`
+- Documented hierarchical processing as future enhancement
+- Recorded spectral constants and algorithm details
+
+#### Next Steps
+1. ⬜ Run full test suite on all 10 reference files
+2. ⬜ Implement Phase 3 (Poisson gradient domain smoothing) if needed
+3. ⬜ Analyze reconstruction quality and optimize spectral estimation
+4. ⬜ Consider hierarchical processing if large region accuracy is insufficient
+
+---
+
 ### 2026-02-27: Phase 1 - Highlight Recovery Foundation
 
 #### Summary

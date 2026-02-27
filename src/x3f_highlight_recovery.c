@@ -319,3 +319,313 @@ void x3f_free_boundary_data(x3f_boundary_data_t *boundary)
   x3f_printf(DEBUG, "Freed boundary data\n");
   free(boundary);
 }
+
+/* =========================================================================
+ * Phase 2: Multi-Channel Highlight Reconstruction
+ * ========================================================================= */
+
+/* Spectral constants from Fent & Meldrum (2016) - QE at 500-575nm */
+static const float QE_BLUE = 10.6f;
+static const float QE_GREEN = 13.2f;
+static const float QE_RED = 9.0f;
+
+/* Smoothstep function for blending (Hermite interpolation) */
+static inline float smoothstep(float edge0, float edge1, float x)
+{
+  float t = (x - edge0) / (edge1 - edge0);
+  t = (t < 0.0f) ? 0.0f : ((t > 1.0f) ? 1.0f : t);
+  return t * t * (3.0f - 2.0f * t);
+}
+
+/* Linear interpolation */
+static inline float lerp(float a, float b, float t)
+{
+  return a + t * (b - a);
+}
+
+/* Case 1: Single channel clipped - reconstruct from two unclipped channels */
+static void reconstruct_single_channel(
+    x3f_pixel_clip_info_t *info,
+    x3f_boundary_data_t *boundary,
+    int idx,
+    float *output)
+{
+  x3f_clip_state_t state = info->state;
+  float blend, reconstructed[3];
+  float max_dist = 32.0f; /* SEARCH_RADIUS */
+  
+  /* Initialize with original values */
+  reconstructed[0] = info->raw_values[0];
+  reconstructed[1] = info->raw_values[1];
+  reconstructed[2] = info->raw_values[2];
+  
+  switch (state) {
+    case CLIP_STATE_BLUE:
+      /* Blue clipped, use Green and Red with boundary ratios */
+      {
+        float ratio_bg = boundary->boundary_ratios_bg[idx];
+        float ratio_br = boundary->boundary_ratios_br[idx];
+        float estimate_bg, estimate_br;
+        
+        /* Estimate from B/G ratio: B = G * (B/G) */
+        if (ratio_bg > 0.0f && info->raw_values[1] > 0.001f) {
+          estimate_bg = info->raw_values[1] * ratio_bg;
+        } else {
+          estimate_bg = info->raw_values[1] * (QE_BLUE / QE_GREEN);
+        }
+        
+        /* Estimate from B/R ratio: B = R * (B/R) */
+        if (ratio_br > 0.0f && info->raw_values[2] > 0.001f) {
+          estimate_br = info->raw_values[2] * ratio_br;
+        } else {
+          estimate_br = info->raw_values[2] * (QE_BLUE / QE_RED);
+        }
+        
+        /* Weighted average: prefer B/G as it's more stable (closer layers) */
+        reconstructed[0] = 0.6f * estimate_bg + 0.4f * estimate_br;
+      }
+      break;
+      
+    case CLIP_STATE_GREEN:
+      /* Green clipped, use Blue and Red with boundary ratios */
+      {
+        float ratio_bg = boundary->boundary_ratios_bg[idx];
+        float ratio_gr = boundary->boundary_ratios_gr[idx];
+        float estimate_bg, estimate_gr;
+        
+        /* Estimate from G/B ratio: G = B / (B/G) */
+        if (ratio_bg > 0.0f && info->raw_values[0] > 0.001f) {
+          estimate_bg = info->raw_values[0] / ratio_bg;
+        } else {
+          estimate_bg = info->raw_values[0] * (QE_GREEN / QE_BLUE);
+        }
+        
+        /* Estimate from G/R ratio: G = R * (G/R) */
+        if (ratio_gr > 0.0f && info->raw_values[2] > 0.001f) {
+          estimate_gr = info->raw_values[2] * ratio_gr;
+        } else {
+          estimate_gr = info->raw_values[2] * (QE_GREEN / QE_RED);
+        }
+        
+        /* Average the two estimates */
+        reconstructed[1] = (estimate_bg + estimate_gr) / 2.0f;
+      }
+      break;
+      
+    case CLIP_STATE_RED:
+      /* Red clipped, use Blue and Green with boundary ratios */
+      {
+        float ratio_br = boundary->boundary_ratios_br[idx];
+        float ratio_gr = boundary->boundary_ratios_gr[idx];
+        float estimate_br, estimate_gr;
+        
+        /* Estimate from R/B ratio: R = B / (B/R) */
+        if (ratio_br > 0.0f && info->raw_values[0] > 0.001f) {
+          estimate_br = info->raw_values[0] / ratio_br;
+        } else {
+          estimate_br = info->raw_values[0] * (QE_RED / QE_BLUE);
+        }
+        
+        /* Estimate from R/G ratio: R = G / (G/R) */
+        if (ratio_gr > 0.0f && info->raw_values[1] > 0.001f) {
+          estimate_gr = info->raw_values[1] / ratio_gr;
+        } else {
+          estimate_gr = info->raw_values[1] * (QE_RED / QE_GREEN);
+        }
+        
+        /* Average the two estimates */
+        reconstructed[2] = (estimate_br + estimate_gr) / 2.0f;
+      }
+      break;
+      
+    default:
+      /* Should not reach here for single channel case */
+      break;
+  }
+  
+  /* Apply smoothstep blending based on distance to boundary (30% zone) */
+  blend = smoothstep(0.0f, 0.3f * max_dist, info->distance_to_boundary);
+  
+  output[0] = lerp(info->raw_values[0], reconstructed[0], blend);
+  output[1] = lerp(info->raw_values[1], reconstructed[1], blend);
+  output[2] = lerp(info->raw_values[2], reconstructed[2], blend);
+}
+
+/* Case 2: Two channels clipped - simplified spectral estimation (no hierarchy) */
+static void reconstruct_two_channels(
+    x3f_pixel_clip_info_t *info,
+    float *output)
+{
+  x3f_clip_state_t state = info->state;
+  float blend, reconstructed[3];
+  float max_dist = 32.0f; /* SEARCH_RADIUS */
+  
+  /* Initialize with original values */
+  reconstructed[0] = info->raw_values[0];
+  reconstructed[1] = info->raw_values[1];
+  reconstructed[2] = info->raw_values[2];
+  
+  switch (state) {
+    case CLIP_STATE_BG:
+      /* Blue+Green clipped, Red valid - estimate from Red */
+      reconstructed[2] = info->raw_values[2]; /* Red preserved */
+      /* Conservative estimates from spectral response */
+      reconstructed[0] = info->raw_values[2] * (QE_BLUE / QE_RED) * 0.75f;
+      reconstructed[1] = info->raw_values[2] * (QE_GREEN / QE_RED) * 0.95f;
+      break;
+      
+    case CLIP_STATE_BR:
+      /* Blue+Red clipped, Green valid - estimate from Green */
+      reconstructed[1] = info->raw_values[1]; /* Green preserved */
+      reconstructed[0] = info->raw_values[1] * (QE_BLUE / QE_GREEN) * 0.95f;
+      reconstructed[2] = info->raw_values[1] * (QE_RED / QE_GREEN) * 1.05f;
+      break;
+      
+    case CLIP_STATE_GR:
+      /* Green+Red clipped, Blue valid - estimate from Blue */
+      reconstructed[0] = info->raw_values[0]; /* Blue preserved */
+      reconstructed[1] = info->raw_values[0] * (QE_GREEN / QE_BLUE) * 1.05f;
+      reconstructed[2] = info->raw_values[0] * (QE_RED / QE_BLUE) * 0.85f;
+      break;
+      
+    default:
+      /* Should not reach here for two channel case */
+      break;
+  }
+  
+  /* Apply smoothstep blending based on distance to boundary (30% zone) */
+  blend = smoothstep(0.0f, 0.3f * max_dist, info->distance_to_boundary);
+  
+  output[0] = lerp(info->raw_values[0], reconstructed[0], blend);
+  output[1] = lerp(info->raw_values[1], reconstructed[1], blend);
+  output[2] = lerp(info->raw_values[2], reconstructed[2], blend);
+}
+
+/* Case 3: All channels clipped - graceful desaturation */
+static void reconstruct_all_channels(
+    x3f_pixel_clip_info_t *info,
+    double hl_sat_factor,
+    float *output)
+{
+  float max_luminance = 0.0f;
+  float desat, reconstructed[3];
+  float variation = 0.0f;
+  int c;
+  
+  /* Find the "least clipped" channel (highest value) */
+  for (c = 0; c < 3; c++) {
+    if (info->raw_values[c] > max_luminance) {
+      max_luminance = info->raw_values[c];
+    }
+  }
+  
+  /* Cap at white point */
+  if (max_luminance > 1.0f) max_luminance = 1.0f;
+  
+  /* Apply desaturation factor from metadata (limit to max 0.8) */
+  desat = (float)hl_sat_factor;
+  if (desat > 0.8f) desat = 0.8f;
+  
+  /* Generate desaturated color towards white */
+  for (c = 0; c < 3; c++) {
+    reconstructed[c] = max_luminance * (0.5f + 0.5f * desat);
+  }
+  
+  /* Add subtle variation if we have unclipped neighbors */
+  if (info->has_unclipped_neighbor) {
+    variation = (max_luminance - 0.98f) * 10.0f;
+    if (variation < 0.0f) variation = 0.0f;
+    if (variation > 0.2f) variation = 0.2f;
+    
+    for (c = 0; c < 3; c++) {
+      reconstructed[c] -= variation * 0.05f;
+    }
+  }
+  
+  /* For all-channel clipping, use stronger blending near boundary */
+  float blend = smoothstep(0.0f, 0.3f * 32.0f, info->distance_to_boundary);
+  
+  for (c = 0; c < 3; c++) {
+    output[c] = lerp(info->raw_values[c], reconstructed[c], blend);
+  }
+}
+
+/* Main Phase 2 reconstruction function */
+int x3f_reconstruct_highlights(
+    x3f_area16_t *image,
+    x3f_clip_map_t *clip_map,
+    x3f_boundary_data_t *boundary,
+    double hl_sat_factor,
+    x3f_area16_t *output)
+{
+  int row, col, idx;
+  int width, height;
+  size_t data_size;
+  
+  if (!image || !clip_map || !boundary || !output) {
+    x3f_printf(ERR, "Invalid parameters for highlight reconstruction\n");
+    return 0;
+  }
+  
+  width = image->columns;
+  height = image->rows;
+  
+  /* Allocate output buffer */
+  data_size = (size_t)width * height * 3 * sizeof(uint16_t);
+  output->data = (uint16_t*)malloc(data_size);
+  if (!output->data) {
+    x3f_printf(ERR, "Failed to allocate reconstruction buffer (%zu bytes)\n", data_size);
+    return 0;
+  }
+  
+  output->rows = height;
+  output->columns = width;
+  output->channels = 3;
+  output->row_stride = width * 3;
+  output->buf = output->data;  /* For proper cleanup */
+  
+  x3f_printf(INFO, "Reconstructing highlights: %d clipped pixels...\n",
+             clip_map->total_clipped_pixels);
+  
+  /* Process all pixels */
+  for (row = 0; row < height; row++) {
+    for (col = 0; col < width; col++) {
+      idx = row * width + col;
+      x3f_pixel_clip_info_t *info = &clip_map->pixels[idx];
+      float reconstructed[3];
+      int c;
+      
+      if (info->state == CLIP_STATE_NONE) {
+        /* Unclipped pixel - copy directly */
+        for (c = 0; c < 3; c++) {
+          reconstructed[c] = info->raw_values[c];
+        }
+      } else {
+        int num_clipped = x3f_count_clipped_channels(info->state);
+        
+        if (num_clipped == 1) {
+          /* Case 1: Single channel clipped */
+          reconstruct_single_channel(info, boundary, idx, reconstructed);
+        } else if (num_clipped == 2) {
+          /* Case 2: Two channels clipped (simplified) */
+          reconstruct_two_channels(info, reconstructed);
+        } else {
+          /* Case 3: All channels clipped */
+          reconstruct_all_channels(info, hl_sat_factor, reconstructed);
+        }
+      }
+      
+      /* Convert float [0-1] to uint16_t [0-65535] */
+      for (c = 0; c < 3; c++) {
+        float val = reconstructed[c];
+        /* Clamp to valid range */
+        if (val < 0.0f) val = 0.0f;
+        if (val > 1.0f) val = 1.0f;
+        output->data[idx * 3 + c] = (uint16_t)(val * 65535.0f);
+      }
+    }
+  }
+  
+  x3f_printf(INFO, "Highlight reconstruction complete\n");
+  return 1;
+}
