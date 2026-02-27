@@ -5,6 +5,45 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-02-27: Uniform Highlight Compression Fix
+
+#### Summary
+Fixed per-channel highlight compression in `x3f_process.c` that was causing bold/muddy colors in clipped regions instead of smooth roll-off to white.
+
+#### Problem
+The highlight compression algorithm was compressing each color channel independently (lines 1059-1081). When one channel (e.g., yellow) clipped, only that channel would be compressed while others remained unchanged, resulting in:
+- Bold/muddy colors in clipped regions
+- Loss of hue balance in highlights
+- Harsh transitions instead of smooth roll-off to white
+
+#### Solution
+Modified the processing to use **uniform scaling** when highlights clip:
+
+1. Calculate `x_max` across all 3 channels to detect clipping
+2. Only apply uniform compression when `x_max > highlight_knee` (2.0)
+3. For clipped highlights:
+   - Apply tone curve + compression to `x_max` to get `y_max`
+   - Calculate `scale_factor = y_max / x_max`
+   - Apply this same scale factor to ALL channels equally
+4. For shadows/mid-tones: maintain per-channel processing
+
+**Benefits:**
+- Preserves color ratios in clipped regions
+- Creates smooth roll-off to white
+- Prevents bold/muddy colors in blown highlights
+- Maintains hue while managing intensity
+
+#### Testing Results
+Tested on `_P2M0937.X3F` which has 539,773 clipped pixels (3.36% of image):
+- No fully clipped pixels found (>65000) - compression is working
+- Highlight MAE: 80.21, Mean DeltaE: 48.88
+- Build: Clean compilation with no errors
+
+#### Files Modified
+- `src/x3f_process.c` - Updated highlight compression logic (lines 1052-1112)
+
+---
+
 ### 2026-02-27: Phase 2b - Soft-Knee Compression & Texture Transfer
 
 #### Summary

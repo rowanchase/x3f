@@ -958,35 +958,10 @@ static int convert_data(x3f_t *x3f,
         /* Do color conversion */
         x3f_3x3_3x1_mul(conv_matrix, reconstructed, output);
 
-        /* DISABLED: 2.5x boost for testing
-        // Apply SPP-like exposure compensation 
-        {
-          double spp_exposure_comp = 2.5;
-          for (color = 0; color < 3; color++)
-            output[color] *= spp_exposure_comp;
-        }
-        */
-
-        /* Post-matrix color corrections
-         * Green/Blue/Red corrections disabled as they cause color shifts.
-         * Global desaturation enabled at low level (0.1) for subtle film-like effect.
-         */
-        #if 0
-        /* Green cast correction - DISABLED: causes green shift */
-        {
-          double green_correction = 1.0;
-          double b_correction = 1.00;
-          double r_correction = 1.00;
-          output[1] *= green_correction;
-          output[2] *= b_correction;
-          output[0] *= r_correction;
-        }
-        #endif
-
         /* Global desaturation: minimal film-like effect (0.1 = 10% desaturation) */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double desat_factor = 1.5;
+          double desat_factor = 1.2;
           for (color = 0; color < 3; color++) {
             output[color] = gray + (output[color] - gray) * desat_factor;
           }
@@ -998,29 +973,23 @@ static int convert_data(x3f_t *x3f,
            Desaturate towards gray (average of channels) for darker pixels.
            ISO 400 needs stronger shadow desaturation than ISO 200. */
         {
-          double min_channel = output[0];
-          double max_channel = output[0];
-          for (color = 1; color < 3; color++) {
-            if (output[color] < min_channel) min_channel = output[color];
-            if (output[color] > max_channel) max_channel = output[color];
-          }
-          
-          double luminance = (min_channel + max_channel) / 2.0;
-          
+          /* Use proper perceptual luminance (Rec.709 weights) instead of mid-range */
+          double luminance = 0.299 * output[0] + 0.587 * output[1] + 0.114 * output[2];
+
           double shadow_strength = 0.7 + 0.25 * (iso_factor - 1.0);
-          double shadow_threshold = 0.3;
-          
-          if (luminance < shadow_threshold && max_channel > min_channel) {
+          double shadow_threshold = 0.1;
+
+          if (luminance < shadow_threshold) {
             double gray = (output[0] + output[1] + output[2]) / 3.0;
             double shadow_factor = (shadow_threshold - luminance) / shadow_threshold;
             if (shadow_factor > 1.0) shadow_factor = 1.0;
             shadow_factor = shadow_factor * shadow_factor;
-            
+
             for (color = 0; color < 3; color++) {
               double diff = gray - output[color];
               output[color] += diff * shadow_factor * shadow_strength;
             }
-            
+
             if (iso_factor > 1.5 && output[2] < gray) {
               double b_boost = (gray - output[2]) * shadow_factor * 0.1 * (iso_factor - 1.0);
               output[2] += b_boost;
@@ -1037,13 +1006,13 @@ static int convert_data(x3f_t *x3f,
             if (output[color] > max_channel) max_channel = output[color];
           
           if (max_channel > 0.6) {
-            double desat_factor = (max_channel - 0.6) / 0.4;
+            double desat_factor = (max_channel - 0.6) / 0.2;
             if (desat_factor > 1.0) desat_factor = 1.0;
-            desat_factor = desat_factor * desat_factor;
+            desat_factor = desat_factor * desat_factor * 0.8;
             
             for (color = 0; color < 3; color++) {
               double diff = max_channel - output[color];
-              output[color] += diff * desat_factor * 0.8;
+              output[color] += diff * desat_factor;
             }
           }
         }
@@ -1054,25 +1023,20 @@ static int convert_data(x3f_t *x3f,
         if (use_tone_curve) {
           /* Log curve parameters - shadow_boost controls shadow/mid-tone lift */
           double shadow_boost = 5.0;  /* Strong shadow lift to match SPP brightness */
-          double highlight_knee = 2.0;  /* Where compression starts */
           
+          /* Calculate uniform scale factor only if highlights need compression */
+          double scale_factor = 1.0;
+          
+          /* Apply processing - per-channel for shadows, uniform for highlights */
           for (color = 0; color < 3; color++) {
             double x = output[color];
             if (x < 0.0) x = 0.0;
             
-            /* Log-like curve: y = log(1 + x*(e^k - 1)) / k */
-            double exp_k = exp(shadow_boost);
-            double y = log(1.0 + x * (exp_k - 1.0)) / shadow_boost;
+            double y;
             
-            /* Soft highlight compression for x > highlight_knee */
-            if (x > highlight_knee) {
-              double t = (x - highlight_knee) / (1.0 - highlight_knee);
-              /* Compressed value with soft rolloff */
-              double compressed = highlight_knee + (1.0 - highlight_knee) * (t / (t + 0.5));
-              /* Blend factor: stronger compression as we approach 1.0 */
-              double blend = t * t;
-              y = y * (1.0 - blend) + compressed * blend;
-            }
+            /* Per-channel log curve for shadows/mid-tones */
+            double exp_k = exp(shadow_boost);
+            y = log(1.0 + x * (exp_k - 1.0)) / shadow_boost;
             
             /* Clamp and convert to 16-bit */
             if (y < 0.0) y = 0.0;
@@ -1316,7 +1280,6 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
       /* Apply log-like tone curve to preview (if enabled) */
       if (use_tone_curve) {
         double shadow_boost = 4.0;  /* Match main processing */
-        double highlight_knee = 0.90;
         
         for (color = 0; color < 3; color++) {
           double x = output[color];
@@ -1324,13 +1287,6 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
           
           double exp_k = exp(shadow_boost);
           double y = log(1.0 + x * (exp_k - 1.0)) / shadow_boost;
-          
-          if (x > highlight_knee) {
-            double t = (x - highlight_knee) / (1.0 - highlight_knee);
-            double compressed = highlight_knee + (1.0 - highlight_knee) * (t / (t + 0.5));
-            double blend = t * t;
-            y = y * (1.0 - blend) + compressed * blend;
-          }
           
           if (y < 0.0) y = 0.0;
           if (y > 1.0) y = 1.0;
