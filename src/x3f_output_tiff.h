@@ -21,6 +21,9 @@ extern x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f, char *outfilename,
 					      int apply_sgain,
 					      char *wb,
 					      int compress,
-					      int use_tone_curve);
+					      int use_tone_curve,
+					      int apply_sharpen,
+					      double sharpen_psf,
+					      int sharpen_iter);
 
 #endif

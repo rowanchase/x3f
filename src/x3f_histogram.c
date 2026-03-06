@@ -56,7 +56,7 @@ x3f_return_t x3f_dump_raw_data_as_histogram(x3f_t *x3f,
 
   if (!x3f_get_image(x3f, &image, NULL, encoding,
 		     crop, fix_bad, denoise, apply_sgain,
-		     wb, 0) ||  /* Disable tone curve for histogram (raw values) */
+		     wb, 0, 0, 0.7, 20) ||  /* tone curve disabled, sharpening disabled */
       image.channels < 3) {
     fclose(f_out);
     return X3F_ARGUMENT_ERROR;

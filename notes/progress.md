@@ -5,6 +5,60 @@ This project aims to fix issues with the `x3f_extract` tool for processing Sigma
 
 ## Work Completed
 
+### 2026-03-06: Richardson-Lucy Deconvolution Sharpening
+
+#### Summary
+Implemented Richardson-Lucy deconvolution sharpening as a new optional post-processing step. This high-quality sharpening algorithm restores lost sharpness and produces crisp edges without halos.
+
+#### Technical Implementation
+
+**New Files:**
+- `src/x3f_sharpen.h` - Function declarations
+- `src/x3f_sharpen.cpp` - RL deconvolution implementation using OpenCV
+
+**Modified Files:**
+- `src/makefile` - Added new module to build
+- `src/x3f_process.h` - Added sharpening parameters to x3f_get_image()
+- `src/x3f_process.c` - Integrated sharpening call after tone curve
+- `src/x3f_output_tiff.c` - Updated TIFF output to support sharpening
+- `src/x3f_output_ppm.c` - Updated to pass sharpening disabled (default)
+- `src/x3f_output_dng.c` - Updated to pass sharpening disabled (default)
+- `src/x3f_histogram.c` - Updated to pass sharpening disabled (default)
+- `src/x3f_extract.c` - Added CLI flags and help text
+
+**Algorithm Details:**
+- Gaussian PSF with configurable sigma (default: 0.7 pixels)
+- 20 iterations of iterative refinement
+- Full per-channel processing (R, G, B independently)
+- Applied after tone curve on non-linear data
+
+**CLI Options:**
+```
+-sharpen           Apply RL deconvolution (default: ON for TIFF)
+-no-sharpen        Disable sharpening
+-sharpen-psf <F>   PSF sigma in pixels (default: 0.7)
+-sharpen-iter <N>  Number of iterations (default: 20)
+```
+
+**Performance:**
+- Base processing: ~10.6 seconds
+- With sharpening: ~19.1 seconds
+- Overhead: ~8.5 seconds for 20 iterations on 15MP image
+
+**Testing:**
+- Build successful with no errors
+- Tested with _P2M0927.X3F
+- Verbose mode confirms sharpening execution
+- Output files generated successfully
+
+#### Notes
+This is the first implementation using the simplest approach (Gaussian PSF). Future work will focus on:
+1. Parameter tuning (optimal PSF sigma for Merrill sensor)
+2. Quality measurement (gradient magnitude comparison to SPP)
+3. Iteration count optimization
+
+---
+
 ### 2026-02-27: Uniform Highlight Compression Fix
 
 #### Summary

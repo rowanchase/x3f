@@ -318,7 +318,7 @@ x3f_return_t x3f_dump_raw_data_as_dng(x3f_t *x3f,
 
   if (wb == NULL) wb = x3f_get_wb(x3f);
   if (!x3f_get_image(x3f, &image, &ilevels, NONE, 0,
-		     fix_bad, denoise, apply_sgain, wb, 0) ||  /* Disable tone curve for DNG (raw output) */
+		     fix_bad, denoise, apply_sgain, wb, 0, 0, 0.7, 20) ||  /* Disable tone curve and sharpening for DNG (raw output) */
       image.channels != 3) {
     x3f_printf(ERR, "Could not get image\n");
     TIFFClose(f_out);

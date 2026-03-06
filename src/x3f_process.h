@@ -39,7 +39,10 @@ extern int x3f_get_image(x3f_t *x3f,
 			 int denoise,
 			 int apply_sgain,
 			 char *wb,
-			 int use_tone_curve);
+			 int use_tone_curve,
+			 int apply_sharpen,
+			 double sharpen_psf,
+			 int sharpen_iter);
 
 extern int x3f_get_preview(x3f_t *x3f,
 			   x3f_area16_t *image,

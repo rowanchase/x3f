@@ -76,6 +76,10 @@ static void usage(char *progname)
            "   -no-sgain       Do not apply spatial gain (color compensation)\n"
            "   -no-fix-bad     Do not fix bad pixels\n"
            "   -no-tone-curve  Do not apply log-like tone curve (default: enabled)\n"
+           "   -no-sharpen     Do not apply Richardson-Lucy deconvolution sharpening\n"
+           "   -sharpen        Apply RL deconvolution sharpening (default: enabled)\n"
+           "   -sharpen-psf <F>   PSF sigma in pixels (default: 0.7)\n"
+           "   -sharpen-iter <N>  Number of iterations (default: 20)\n"
            "   -sgain          Apply spatial gain (default except for Quattro)\n"
           "   -wb <WB>        Select white balance preset\n"
           "   -compress       Enable ZIP compression for DNG and TIFF output\n"
@@ -199,6 +203,9 @@ int main(int argc, char *argv[])
   int compress = 0;
   int use_opencl = 0;
   int use_tone_curve = 1;  /* Default: enabled */
+  int apply_sharpen = 1;   /* Default: enabled */
+  double sharpen_psf = 0.7; /* PSF sigma in pixels */
+  int sharpen_iter = 20;    /* Number of iterations */
   char *outdir = NULL;
   x3f_return_t ret;
 
@@ -267,6 +274,14 @@ int main(int argc, char *argv[])
       apply_sgain = 0;
     else if (!strcmp(argv[i], "-no-tone-curve"))
       use_tone_curve = 0;
+    else if (!strcmp(argv[i], "-no-sharpen"))
+      apply_sharpen = 0;
+    else if (!strcmp(argv[i], "-sharpen"))
+      apply_sharpen = 1;
+    else if ((!strcmp(argv[i], "-sharpen-psf")) && (i+1)<argc)
+      sharpen_psf = atof(argv[++i]);
+    else if ((!strcmp(argv[i], "-sharpen-iter")) && (i+1)<argc)
+      sharpen_iter = atoi(argv[++i]);
     else if (!strcmp(argv[i], "-sgain"))
       apply_sgain = 1;
     else if ((!strcmp(argv[i], "-wb")) && (i+1)<argc)
@@ -413,7 +428,8 @@ int main(int argc, char *argv[])
 					   color_encoding,
 					   crop, fix_bad, denoise, sgain, wb,
 					   compress,
-					   use_tone_curve);
+					   use_tone_curve,
+					   apply_sharpen, sharpen_psf, sharpen_iter);
       break;
     case DNG:
       x3f_printf(INFO, "Dump RAW as DNG to %s\n", outfile);

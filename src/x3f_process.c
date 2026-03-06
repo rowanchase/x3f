@@ -14,6 +14,7 @@
 #include "x3f_matrix.h"
 #include "x3f_denoise.h"
 #include "x3f_spatial_gain.h"
+#include "x3f_sharpen.h"
 #include "x3f_printf.h"
 #include "x3f_highlight_recovery.h"
 
@@ -1118,7 +1119,10 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 			       int denoise,
 			       int apply_sgain,
 			       char *wb,
-			       int use_tone_curve)
+			       int use_tone_curve,
+			       int apply_sharpen,
+			       double sharpen_psf,
+			       int sharpen_iter)
 {
   x3f_area16_t original_image, expanded;
   x3f_image_levels_t il;
@@ -1177,6 +1181,10 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
       !convert_data(x3f, &original_image, &il, encoding, apply_sgain, wb, capture_iso, use_tone_curve)) {
     free(image->buf);
     return 0;
+  }
+
+  if (apply_sharpen && encoding != NONE && encoding != UNPROCESSED) {
+    x3f_rl_deconv(image, sharpen_psf, sharpen_iter, 0.0);
   }
 
   if (ilevels) *ilevels = il;

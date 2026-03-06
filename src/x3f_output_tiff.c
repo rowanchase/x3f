@@ -153,7 +153,10 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
 				       int apply_sgain,
 				       char *wb,
 				       int compress,
-				       int use_tone_curve)
+				       int use_tone_curve,
+				       int apply_sharpen,
+				       double sharpen_psf,
+				       int sharpen_iter)
 {
   x3f_area16_t image;
   TIFF *f_out = TIFFOpen(outfilename, "w");
@@ -163,7 +166,7 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
 
   if (!x3f_get_image(x3f, &image, NULL, encoding,
 		     crop, fix_bad, denoise, apply_sgain,
-		     wb, use_tone_curve)) {
+		     wb, use_tone_curve, apply_sharpen, sharpen_psf, sharpen_iter)) {
     TIFFClose(f_out);
     return X3F_ARGUMENT_ERROR;
   }
