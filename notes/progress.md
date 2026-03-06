@@ -1291,3 +1291,51 @@ All approaches have unusual negative values - none look like proper camera matri
 Target: RMSE < 5.0 and DeltaE mean < 10 across all reference files
 Current: RMSE ~11-15, DeltaE mean ~64 (significant room for improvement)
 
+---
+
+## 2026-03-06: Tone Curve Placement Experiment
+
+### Question
+Should the logarithmic tone curve be applied earlier in the pipeline (before color conversion) rather than at the end (after color conversion)?
+
+### Experiment Design
+Tested Option B: Apply tone curve after highlight reconstruction, before color conversion (raw RGB → XYZ → sRGB).
+
+### Results
+
+| Metric | Baseline (tone curve at end) | Option B (tone curve before color conv) |
+|--------|------------------------------|----------------------------------------|
+| RMSE   | 21.50                       | 118.85                                 |
+| DeltaE Mean | 105.54                   | 66.03                                  |
+| Shadows DeltaE | 84.90                  | 113.61                                 |
+| Midtones DeltaE | 127.06               | 59.66                                  |
+| Highlights DeltaE | 26.33                | 25.58                                  |
+
+### Analysis
+Option B performed significantly worse overall (RMSE 5.5x higher). The key issues:
+
+1. **Desaturation steps operate on wrong data**: The shadow, highlight, and global desaturation steps and color correction matrix were designed to work on linear data in output color space. With tone curve applied first, these operate on already-compressed values, producing incorrect results.
+
+2. **Highlight clipping**: Many highlights that should have tonal variation were pushed to pure white [255,255,255] while reference showed values like [224,208,141].
+
+3. **Shadow degradation**: Shadows got significantly worse (84.90 → 113.61 DeltaE) despite the tone curve's intent to lift shadows.
+
+### Conclusion
+The tone curve MUST remain at the end of the pipeline (after color conversion, desaturation, and CCM) because:
+
+1. The downstream processing steps (desaturation, CCM) are mathematically designed for linear output-space data
+2. The tone curve is a display-referred operation, meant to be the final step before output
+3. Moving it earlier breaks the assumptions of all subsequent processing
+
+### Alternative Approaches (for future)
+If tone curve needs to be applied in linear space:
+- Move ALL downstream processing (desaturation, CCM) before the tone curve
+- This would be a larger restructuring of the pipeline
+- Would require careful testing to ensure correctness
+
+### Files Modified
+- `src/x3f_process.c` - Reverted changes (experiment failed)
+
+### Next Steps
+This experiment is complete. The current tone curve placement at the end of the pipeline appears to be correct.
+
