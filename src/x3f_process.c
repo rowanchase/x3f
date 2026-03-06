@@ -888,6 +888,13 @@ static int convert_data(x3f_t *x3f,
         uint16_t *valp[3];
         double input[3], reconstructed[3];
 
+        /* Per-channel multipliers for spatial gain to fine-tune vignette correction
+         * Values > 1.0 over-correct (reduce green), values < 1.0 under-correct
+         * Current baseline: R=1.0, G=1.0, B=1.0 (no change)
+         * To reduce green cast in vignettes: try G slightly > 1.0 (e.g., 1.05-1.10)
+         */
+        static const double sgain_multipliers[3] = {1.00, 1.00, 1.00};  /* R, G, B */
+
         /* Get the data */
         for (color = 0; color < 3; color++) {
           valp[color] =
@@ -895,6 +902,7 @@ static int convert_data(x3f_t *x3f,
           input[color] = x3f_calc_spatial_gain(sgain, sgain_num,
                                                row, col, color,
                                                image->rows, image->columns) *
+            sgain_multipliers[color] *  /* Apply per-channel multiplier */
             (*valp[color] - ilevels->black[color]) /
             (ilevels->white[color] - ilevels->black[color]);
         }
@@ -912,7 +920,7 @@ static int convert_data(x3f_t *x3f,
         /* Global desaturation: minimal film-like effect (0.1 = 10% desaturation) */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double desat_factor = 1.2;
+          double desat_factor = 1.3;
           for (color = 0; color < 3; color++) {
             output[color] = gray + (output[color] - gray) * desat_factor;
           }
@@ -1230,6 +1238,9 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
     for (col = 0; col < preview->columns; col++) {
       double input[3], output[3];
 
+      /* Per-channel multipliers for spatial gain (same as main image) */
+      static const double sgain_multipliers[3] = {1.0, 1.08, 1.0};  /* R, G, B */
+
       /* Get the data */
       for (color = 0; color < 3; color++) {
 	uint32_t acc = 0;
@@ -1243,6 +1254,7 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 	input[color] = x3f_calc_spatial_gain(sgain, sgain_num,
 					     row, col, color,
 					     preview->rows, preview->columns) *
+	  sgain_multipliers[color] *  /* Apply per-channel multiplier */
 	  ((double)acc/reduction2 - ilevels->black[color]) /
 	  (ilevels->white[color] - ilevels->black[color]);
       }

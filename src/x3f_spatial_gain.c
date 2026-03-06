@@ -16,6 +16,13 @@
 #include <string.h>
 #include <math.h>
 
+/* Multiplier for spatial gain Delta values
+ * Increases the spatial variation of vignette correction
+ * Default: 1.0 (use camera's native values)
+ * Higher values (e.g., 1.5-2.0) increase vignette correction strength
+ */
+#define SPATIAL_GAIN_DELTA_MULTIPLIER 1.6
+
 static double lens_position(double focal_length, double object_distance)
 {
   return 1.0/(1.0/focal_length - 1.0/object_distance);
@@ -103,7 +110,7 @@ static int get_merrill_type_gains_table(x3f_t *x3f, char *name, char *chan,
 
   sprintf(table, "Delta%s", chan);
   if (!x3f_get_camf_property(x3f, name, table, &val)) return 0;
-  *delta = atof(val);
+  *delta = atof(val) * SPATIAL_GAIN_DELTA_MULTIPLIER;
 
   return 1;
 }
