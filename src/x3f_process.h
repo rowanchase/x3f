@@ -42,7 +42,11 @@ extern int x3f_get_image(x3f_t *x3f,
 			 int use_tone_curve,
 			 int apply_sharpen,
 			 double sharpen_psf,
-			 int sharpen_iter);
+			 int sharpen_iter,
+			 int apply_micro_contrast,
+			 double mc_radius,
+			 double mc_amount,
+			 double mc_epsilon);
 
 extern int x3f_get_preview(x3f_t *x3f,
 			   x3f_area16_t *image,

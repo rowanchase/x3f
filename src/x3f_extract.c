@@ -80,6 +80,10 @@ static void usage(char *progname)
            "   -sharpen        Apply RL deconvolution sharpening (default: enabled)\n"
            "   -sharpen-psf <F>   PSF sigma in pixels (default: 0.7)\n"
            "   -sharpen-iter <N>  Number of iterations (default: 20)\n"
+           "   -no-micro-contrast  Do not apply micro-contrast enhancement\n"
+           "   -micro-contrast     Apply micro-contrast enhancement (default: enabled)\n"
+           "   -mc-radius <R>      Filter radius in pixels (default: 8.0)\n"
+           "   -mc-amount <A>      Enhancement amount (default: 1.3)\n"
            "   -sgain          Apply spatial gain (default except for Quattro)\n"
           "   -wb <WB>        Select white balance preset\n"
           "   -compress       Enable ZIP compression for DNG and TIFF output\n"
@@ -206,6 +210,10 @@ int main(int argc, char *argv[])
   int apply_sharpen = 1;   /* Default: enabled */
   double sharpen_psf = 0.7; /* PSF sigma in pixels */
   int sharpen_iter = 20;    /* Number of iterations */
+  int apply_micro_contrast = 1;   /* Default: enabled */
+  double mc_radius = 8.0;         /* Guided filter radius */
+  double mc_amount = 1.3;         /* Detail enhancement amount */
+  double mc_epsilon = 0.01;      /* Edge preservation */
   char *outdir = NULL;
   x3f_return_t ret;
 
@@ -282,6 +290,14 @@ int main(int argc, char *argv[])
       sharpen_psf = atof(argv[++i]);
     else if ((!strcmp(argv[i], "-sharpen-iter")) && (i+1)<argc)
       sharpen_iter = atoi(argv[++i]);
+    else if (!strcmp(argv[i], "-no-micro-contrast"))
+      apply_micro_contrast = 0;
+    else if (!strcmp(argv[i], "-micro-contrast"))
+      apply_micro_contrast = 1;
+    else if ((!strcmp(argv[i], "-mc-radius")) && (i+1)<argc)
+      mc_radius = atof(argv[++i]);
+    else if ((!strcmp(argv[i], "-mc-amount")) && (i+1)<argc)
+      mc_amount = atof(argv[++i]);
     else if (!strcmp(argv[i], "-sgain"))
       apply_sgain = 1;
     else if ((!strcmp(argv[i], "-wb")) && (i+1)<argc)
@@ -429,7 +445,8 @@ int main(int argc, char *argv[])
 					   crop, fix_bad, denoise, sgain, wb,
 					   compress,
 					   use_tone_curve,
-					   apply_sharpen, sharpen_psf, sharpen_iter);
+					   apply_sharpen, sharpen_psf, sharpen_iter,
+					   apply_micro_contrast, mc_radius, mc_amount, mc_epsilon);
       break;
     case DNG:
       x3f_printf(INFO, "Dump RAW as DNG to %s\n", outfile);

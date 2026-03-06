@@ -15,6 +15,7 @@
 #include "x3f_denoise.h"
 #include "x3f_spatial_gain.h"
 #include "x3f_sharpen.h"
+#include "x3f_contrast.h"
 #include "x3f_printf.h"
 #include "x3f_highlight_recovery.h"
 
@@ -1122,7 +1123,11 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 			       int use_tone_curve,
 			       int apply_sharpen,
 			       double sharpen_psf,
-			       int sharpen_iter)
+			       int sharpen_iter,
+			       int apply_micro_contrast,
+			       double mc_radius,
+			       double mc_amount,
+			       double mc_epsilon)
 {
   x3f_area16_t original_image, expanded;
   x3f_image_levels_t il;
@@ -1185,6 +1190,10 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 
   if (apply_sharpen && encoding != NONE && encoding != UNPROCESSED) {
     x3f_rl_deconv(image, sharpen_psf, sharpen_iter, 0.0);
+  }
+
+  if (apply_micro_contrast && encoding != NONE && encoding != UNPROCESSED) {
+    x3f_micro_contrast(image, mc_radius, mc_amount, mc_epsilon);
   }
 
   if (ilevels) *ilevels = il;
