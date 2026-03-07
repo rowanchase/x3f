@@ -912,9 +912,9 @@ static int convert_data(x3f_t *x3f,
             &image->data[image->row_stride*row + image->channels*col + color];
           
           double spatial_gain = x3f_calc_spatial_gain(sgain, sgain_num,
-                                               row, col, color,
-                                               image->rows, image->columns);
-          
+                                                row, col, color,
+                                                image->rows, image->columns);
+           
           double color_shading = 1.0;
           // ColorShadingFactor disabled - causes regression
           // if (has_csf) {
@@ -923,7 +923,7 @@ static int convert_data(x3f_t *x3f,
           //                                                      image->rows, image->columns,
           //                                                      color);
           // }
-          
+           
           input[color] = spatial_gain *
             color_shading *
             sgain_multipliers[color] *  /* Apply per-channel multiplier */
@@ -940,7 +940,7 @@ static int convert_data(x3f_t *x3f,
 
         /* Do color conversion */
         x3f_3x3_3x1_mul(conv_matrix, reconstructed, output);
-
+ 
         /* Global desaturation: minimal film-like effect (0.1 = 10% desaturation) */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;

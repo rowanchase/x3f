@@ -479,19 +479,16 @@ double x3f_calc_spatial_gain(x3f_spatial_gain_corr_t *corr, int corr_num,
   return gain;
 }
 
-/* Calculate color shading correction using bilinear interpolation
+/* Calculate color shading correction using gradient interpolation
  * 
- * The ColorShadingFactor is a 2x2 matrix [[a, b], [c, d]] that represents
- * per-channel corrections for R and B based on position:
- *   - Row 0 [a,b]: R channel column and row corrections
- *   - Row 1 [c,d]: B channel column and row corrections
- *
- * The correction is applied as a multiplicative factor:
+ * The ColorShadingFactor is a 2x2 matrix [[a, b], [c, d]]:
+ *   - Row 0 [a,b]: R channel gradient (a = column gradient, b = row gradient)
+ *   - Row 1 [c,d]: B channel gradient (c = column gradient, d = row gradient)
+ * 
+ * The correction is applied as:
  *   - R channel: 1.0 + a * col_norm + b * row_norm
  *   - G channel: 1.0 (no correction)
  *   - B channel: 1.0 + c * col_norm + d * row_norm
- *
- * This corrects for the irregular color drift observed in Merrill sensors.
  *
  * Parameters:
  *   csf_matrix: 2x2 ColorShadingFactor matrix [a, b, c, d]
@@ -510,18 +507,21 @@ double x3f_calc_color_shading_correction(double *csf_matrix,
   double row_norm = (double)row / (rows - 1);
   double col_norm = (double)col / (cols - 1);
   
-  double r_col = csf_matrix[0];
-  double r_row = csf_matrix[1];
-  double b_col = csf_matrix[2];
-  double b_row = csf_matrix[3];
+  double r_col = csf_matrix[0];  /* R column gradient */
+  double r_row = csf_matrix[1];  /* R row gradient */
+  double b_col = csf_matrix[2];  /* B column gradient */
+  double b_row = csf_matrix[3];  /* B row gradient */
   
-  double correction = 0.0;
+  double correction = 1.0;
   
   if (chan == 0) {
-    correction = r_col * col_norm + r_row * row_norm;
+    /* R channel: gradient from top-left */
+    correction = 1.0 + r_col * col_norm + r_row * row_norm;
   } else if (chan == 2) {
-    correction = b_col * col_norm + b_row * row_norm;
+    /* B channel: gradient from top-left */
+    correction = 1.0 + b_col * col_norm + b_row * row_norm;
   }
+  /* G channel: no correction (1.0) */
   
-  return 1.0 + correction;
+  return correction;
 }
