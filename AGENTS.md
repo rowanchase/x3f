@@ -49,6 +49,8 @@ Each time you start your day for work, you should check your progress.md and any
 - `reference_files/X3Fs/` - 10 raw X3F files from DP2 Merrill (_P2M0927.X3F to _P2M0937.X3F)
 - `reference_files/TIFFs/` - Corresponding TIFF outputs from Sigma Photo Pro
 
+There is a special file _PM1182.X3F that is a photo of a white piece of paper.  This shows the colour drift across the sensor which must be corrected.
+
 # Merrill Camera Technical Details
 
 - Cameras: DP1 Merrill, DP2 Merrill, DP3 Merrill

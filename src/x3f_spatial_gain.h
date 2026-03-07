@@ -47,5 +47,9 @@ extern double x3f_calc_spatial_gain(x3f_spatial_gain_corr_t *corr,
 				    int corr_num,
 				    int row, int col, int chan,
 				    int rows, int cols);
+extern double x3f_calc_color_shading_correction(double *csf_matrix,
+						 int row, int col,
+						 int rows, int cols,
+						 int chan);
 
 #endif

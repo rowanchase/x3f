@@ -367,6 +367,19 @@
   return x3f_get_camf_matrix(x3f, matrix_name, dim0, dim1, 0, M_FLOAT, matrix);
 }
 
+/* extern */ int x3f_get_color_shading_factor(x3f_t *x3f, char *wb, double *matrix)
+{
+  char *matrix_name;
+
+  if (!x3f_get_camf_property(x3f, "WhiteBalanceColorShadingFactor", wb, &matrix_name)) {
+    if (!strcmp(wb, "Daylight"))
+      return x3f_get_color_shading_factor(x3f, "Sunlight", matrix);
+    return 0;
+  }
+
+  return x3f_get_camf_matrix(x3f, matrix_name, 2, 2, 0, M_FLOAT, matrix);
+}
+
 static int x3f_is_TRUE_engine(x3f_t *x3f)
 {
   char **names, **values;

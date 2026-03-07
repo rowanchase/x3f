@@ -478,3 +478,50 @@ double x3f_calc_spatial_gain(x3f_spatial_gain_corr_t *corr, int corr_num,
 
   return gain;
 }
+
+/* Calculate color shading correction using bilinear interpolation
+ * 
+ * The ColorShadingFactor is a 2x2 matrix [[a, b], [c, d]] that represents
+ * per-channel corrections for R and B based on position:
+ *   - Row 0 [a,b]: R channel column and row corrections
+ *   - Row 1 [c,d]: B channel column and row corrections
+ *
+ * The correction is applied as a multiplicative factor:
+ *   - R channel: 1.0 + a * col_norm + b * row_norm
+ *   - G channel: 1.0 (no correction)
+ *   - B channel: 1.0 + c * col_norm + d * row_norm
+ *
+ * This corrects for the irregular color drift observed in Merrill sensors.
+ *
+ * Parameters:
+ *   csf_matrix: 2x2 ColorShadingFactor matrix [a, b, c, d]
+ *   row, col:   Pixel position
+ *   rows, cols: Image dimensions
+ *   chan:       Color channel (0=R, 1=G, 2=B)
+ *
+ * Returns:
+ *   Multiplicative correction factor to apply to the pixel
+ */
+double x3f_calc_color_shading_correction(double *csf_matrix,
+					 int row, int col,
+					 int rows, int cols,
+					 int chan)
+{
+  double row_norm = (double)row / (rows - 1);
+  double col_norm = (double)col / (cols - 1);
+  
+  double r_col = csf_matrix[0];
+  double r_row = csf_matrix[1];
+  double b_col = csf_matrix[2];
+  double b_row = csf_matrix[3];
+  
+  double correction = 0.0;
+  
+  if (chan == 0) {
+    correction = r_col * col_norm + r_row * row_norm;
+  } else if (chan == 2) {
+    correction = b_col * col_norm + b_row * row_norm;
+  }
+  
+  return 1.0 + correction;
+}

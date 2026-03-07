@@ -839,6 +839,15 @@ static int convert_data(x3f_t *x3f,
     sgain_num = 0;
   }
 
+  double csf_matrix[4] = {0.0, 0.0, 0.0, 0.0};
+  int has_csf = x3f_get_color_shading_factor(x3f, wb, csf_matrix);
+  if (has_csf) {
+    x3f_printf(DEBUG, "ColorShadingFactor loaded: [[%.4f, %.4f], [%.4f, %.4f]]\n",
+	       csf_matrix[0], csf_matrix[1], csf_matrix[2], csf_matrix[3]);
+  } else {
+    x3f_printf(DEBUG, "No ColorShadingFactor available\n");
+  }
+
   /* Phase 1: Highlight Recovery - Clipping Detection and Boundary Analysis
    * Always enabled for Foveon sensors to maximize quality */
   {
@@ -901,9 +910,22 @@ static int convert_data(x3f_t *x3f,
         for (color = 0; color < 3; color++) {
           valp[color] =
             &image->data[image->row_stride*row + image->channels*col + color];
-          input[color] = x3f_calc_spatial_gain(sgain, sgain_num,
+          
+          double spatial_gain = x3f_calc_spatial_gain(sgain, sgain_num,
                                                row, col, color,
-                                               image->rows, image->columns) *
+                                               image->rows, image->columns);
+          
+          double color_shading = 1.0;
+          // ColorShadingFactor disabled - causes regression
+          // if (has_csf) {
+          //   color_shading = x3f_calc_color_shading_correction(csf_matrix,
+          //                                                      row, col,
+          //                                                      image->rows, image->columns,
+          //                                                      color);
+          // }
+          
+          input[color] = spatial_gain *
+            color_shading *
             sgain_multipliers[color] *  /* Apply per-channel multiplier */
             (*valp[color] - ilevels->black[color]) /
             (ilevels->white[color] - ilevels->black[color]);

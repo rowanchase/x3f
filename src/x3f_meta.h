@@ -44,5 +44,6 @@ extern int x3f_get_highlight_params(x3f_t *x3f,
 				     double *chan_thresh1,
 				     double *chan_thresh2,
 				     double *sat_factor);
+extern int x3f_get_color_shading_factor(x3f_t *x3f, char *wb, double *matrix);
 
 #endif
