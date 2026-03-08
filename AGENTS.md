@@ -18,6 +18,24 @@ You are to maintain notes in maticulous detail of all your work and findings.  A
 You should keep a journal like series of notes saved in the format eg. "12-02-2026.md" for the 12th of Feb 2026.  This type of note should be your daily work, progresss, thoughts and questions, experiments or tasks that you need to pick up later.
 You must also keep a progress.md which you should keep up to date as a high level reference of all the work you have done and what the remaining work left to be done is.
 
+## Note File Structure
+
+### Daily Journal (`notes/DD-MM-YYYY.md`)
+- Detailed day-by-day work logs
+- Experiments and their results
+- Thoughts, questions, dead-ends
+- Raw data and debugging output
+
+### Progress Summary (`notes/progress.md`)
+- **Milestone-based organization** (not chronological)
+- High-level achievements grouped by feature/phase
+- Current metrics and status
+- Key technical findings and root causes
+- Remaining work prioritized
+- Quick reference for what's been done vs what's left
+
+**Important:** Keep progress.md concise and well-organized. When it grows too large, summarize and consolidate older completed work into milestone sections. The goal is a quick reference, not a verbose log.
+
 Each time you start your day for work, you should check your progress.md and any relevant journal entries to remind yourself of where you were up to and from this information plan out the work for today.
 
 # Key Source Files
