@@ -533,7 +533,7 @@ double x3f_calc_color_shading_correction(double *csf_matrix,
  * The Merrill sensor has spatial color non-uniformity that cannot be corrected
  * by the existing luminance spatial gain system. This system uses a 7x7 grid
  * of per-channel R/G/B correction factors derived from empirical analysis of
- * white paper image 1182 vs SPP reference output.
+ * white reference image vs SPP reference output.
  *
  * CORRECTION IS APPLIED AFTER COLOR CONVERSION (in output space).
  */
