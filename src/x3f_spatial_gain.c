@@ -525,3 +525,178 @@ double x3f_calc_color_shading_correction(double *csf_matrix,
   
   return correction;
 }
+
+/* ============================================================================
+ * MERRILL SPATIAL COLOR CORRECTION
+ * ============================================================================
+ *
+ * The Merrill sensor has spatial color non-uniformity that cannot be corrected
+ * by the existing luminance spatial gain system. This system uses a 7x7 grid
+ * of per-channel R/G/B correction factors derived from empirical analysis of
+ * white paper image 1182 vs SPP reference output.
+ *
+ * CORRECTION IS APPLIED AFTER COLOR CONVERSION (in output space).
+ */
+
+static const double merrill_color_correction_table[MERRILL_COLOR_GRID_ROWS][MERRILL_COLOR_GRID_COLS][MERRILL_COLOR_CHANNELS] = {
+    /* Row 0 - TOP */
+    {
+        {1.182510, 1.201552, 0.953607},
+        {1.184163, 1.212690, 0.979337},
+        {1.183083, 1.219224, 1.001994},
+        {1.183080, 1.219244, 1.016785},
+        {1.186714, 1.208818, 1.018644},
+        {1.186505, 1.186439, 1.006264},
+        {1.179122, 1.165908, 0.982249}
+    },
+    /* Row 1 */
+    {
+        {1.180737, 1.211718, 0.955971},
+        {1.177344, 1.231839, 0.981390},
+        {1.168929, 1.245773, 0.998648},
+        {1.168708, 1.246803, 1.013681},
+        {1.179936, 1.233400, 1.022711},
+        {1.186347, 1.201253, 1.013695},
+        {1.184142, 1.169347, 0.991013}
+    },
+    /* Row 2 */
+    {
+        {1.179150, 1.220055, 0.956984},
+        {1.174356, 1.249279, 0.985440},
+        {1.162494, 1.270016, 0.999771},
+        {1.162850, 1.270771, 1.013922},
+        {1.174491, 1.248738, 1.023331},
+        {1.186387, 1.210008, 1.018987},
+        {1.190044, 1.169300, 0.998819}
+    },
+    /* Row 3 - CENTER */
+    {
+        {1.170224, 1.215557, 0.949127},
+        {1.166887, 1.252994, 0.982103},
+        {1.159530, 1.280222, 1.001351},
+        {1.156999, 1.277949, 1.012580},
+        {1.172302, 1.254153, 1.026322},
+        {1.191195, 1.211187, 1.028135},
+        {1.198378, 1.163786, 1.010264}
+    },
+    /* Row 4 */
+    {
+        {1.173434, 1.201658, 0.954082},
+        {1.166815, 1.239526, 0.982874},
+        {1.157133, 1.269274, 1.001124},
+        {1.154318, 1.266398, 1.012108},
+        {1.172092, 1.241639, 1.028482},
+        {1.194688, 1.198275, 1.033223},
+        {1.205569, 1.150259, 1.019223}
+    },
+    /* Row 5 */
+    {
+        {1.178657, 1.175116, 0.958121},
+        {1.164545, 1.205667, 0.980993},
+        {1.163173, 1.237206, 1.006264},
+        {1.162692, 1.237770, 1.021442},
+        {1.177275, 1.212341, 1.034574},
+        {1.202756, 1.171226, 1.040782},
+        {1.210976, 1.126290, 1.025053}
+    },
+    /* Row 6 - BOT */
+    {
+        {1.182996, 1.152223, 0.960129},
+        {1.169594, 1.173600, 0.981934},
+        {1.168851, 1.200156, 1.008140},
+        {1.171477, 1.201359, 1.025906},
+        {1.185289, 1.177891, 1.037623},
+        {1.211190, 1.143525, 1.043020},
+        {1.214647, 1.109953, 1.024526}
+    }
+};
+
+/* Load spatial color correction data for Merrill cameras
+ * Returns 1 if correction is available, 0 if not (non-Merrill camera or unsupported) */
+int x3f_load_merrill_spatial_color(x3f_t *x3f, x3f_merrill_spatial_color_t *color_corr)
+{
+    char *cammodel;
+    int is_merrill = 0;
+    int row, col, ch;
+
+    /* Check if this is a Merrill camera */
+    if (x3f_get_prop_entry(x3f, "CAMMODEL", &cammodel)) {
+        if (!strcmp(cammodel, "SIGMA DP1 Merrill") ||
+            !strcmp(cammodel, "SIGMA DP2 Merrill") ||
+            !strcmp(cammodel, "SIGMA DP3 Merrill")) {
+            is_merrill = 1;
+        }
+    }
+
+    if (!is_merrill) {
+        color_corr->is_loaded = 0;
+        return 0;
+    }
+
+    /* Copy the static correction table to the structure */
+    for (row = 0; row < MERRILL_COLOR_GRID_ROWS; row++) {
+        for (col = 0; col < MERRILL_COLOR_GRID_COLS; col++) {
+            for (ch = 0; ch < MERRILL_COLOR_CHANNELS; ch++) {
+                color_corr->grid[row][col].gain[ch] =
+                    merrill_color_correction_table[row][col][ch];
+            }
+        }
+    }
+
+    color_corr->is_loaded = 1;
+    x3f_printf(DEBUG, "Merrill spatial color correction loaded (7x7 grid)\n");
+
+    return 1;
+}
+
+/* Calculate spatial color gain for a specific pixel
+ * Uses bilinear interpolation within the 7x7 grid
+ * Returns 1.0 if correction not available or outside grid */
+double x3f_calc_merrill_color_gain(x3f_merrill_spatial_color_t *color_corr,
+                                   int row, int col, int chan,
+                                   int rows, int cols)
+{
+    double rrel, crel;
+    int ri, ci;
+    double rf, cf;
+    double g00, g01, g10, g11, gain;
+
+    if (!color_corr || !color_corr->is_loaded) {
+        return 1.0;
+    }
+
+    if (chan < 0 || chan >= MERRILL_COLOR_CHANNELS) {
+        return 1.0;
+    }
+
+    /* Normalize row and column to grid coordinates */
+    rrel = (double)row / (double)rows * (MERRILL_COLOR_GRID_ROWS - 1);
+    crel = (double)col / (double)cols * (MERRILL_COLOR_GRID_COLS - 1);
+
+    /* Get integer grid indices */
+    ri = (int)rrel;
+    ci = (int)crel;
+
+    /* Clamp to valid range */
+    if (ri < 0) ri = 0;
+    if (ri >= MERRILL_COLOR_GRID_ROWS - 1) ri = MERRILL_COLOR_GRID_ROWS - 2;
+    if (ci < 0) ci = 0;
+    if (ci >= MERRILL_COLOR_GRID_COLS - 1) ci = MERRILL_COLOR_GRID_COLS - 2;
+
+    /* Fractional parts */
+    rf = rrel - ri;
+    cf = crel - ci;
+
+    /* Bilinear interpolation of the 4 surrounding grid points */
+    g00 = color_corr->grid[ri][ci].gain[chan];
+    g01 = color_corr->grid[ri][ci + 1].gain[chan];
+    g10 = color_corr->grid[ri + 1][ci].gain[chan];
+    g11 = color_corr->grid[ri + 1][ci + 1].gain[chan];
+
+    gain = (1.0 - rf) * (1.0 - cf) * g00 +
+           (1.0 - rf) * cf * g01 +
+           rf * (1.0 - cf) * g10 +
+           rf * cf * g11;
+
+    return gain;
+}

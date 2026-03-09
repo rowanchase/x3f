@@ -839,6 +839,10 @@ static int convert_data(x3f_t *x3f,
     sgain_num = 0;
   }
 
+  /* Load Merrill spatial color correction */
+  x3f_merrill_spatial_color_t merrill_color;
+  int has_merrill_color = x3f_load_merrill_spatial_color(x3f, &merrill_color);
+
   double csf_matrix[4] = {0.0, 0.0, 0.0, 0.0};
   int has_csf = x3f_get_color_shading_factor(x3f, wb, csf_matrix);
   if (has_csf) {
@@ -940,6 +944,16 @@ static int convert_data(x3f_t *x3f,
 
         /* Do color conversion */
         x3f_3x3_3x1_mul(conv_matrix, reconstructed, output);
+
+        /* Apply Merrill spatial color correction after color conversion */
+        if (has_merrill_color) {
+          for (color = 0; color < 3; color++) {
+            double merrill_gain = x3f_calc_merrill_color_gain(&merrill_color,
+                                                               row, col, color,
+                                                               image->rows, image->columns);
+            output[color] *= merrill_gain;
+          }
+        }
  
         /* Global desaturation: minimal film-like effect (0.1 = 10% desaturation) */
         {
