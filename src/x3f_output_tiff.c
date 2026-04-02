@@ -10,9 +10,12 @@
 #include "x3f_output_tiff.h"
 #include "x3f_process.h"
 #include "x3f_io.h"
+#include "x3f_exif.h"
 
 #include <stdlib.h>
+#include <stdint.h>
 #include <tiffio.h>
+#include "tiff.h"
 
 /* Adobe RGB (1998) ICC profile - 560 bytes
  * Extracted from Sigma Photo Pro output TIFF */
@@ -210,6 +213,14 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
 
   for (row=0; row < image.rows; row++)
     TIFFWriteScanline(f_out, image.data + image.row_stride*row, row, 0);
+
+  x3f_exif_metadata_t exif_meta;
+  if (x3f_extract_exif_metadata(x3f, &exif_meta)) {
+    TIFFSetField(f_out, TIFFTAG_DATETIME, exif_meta.datetime[0] ? exif_meta.datetime : "2024:01:01 00:00:00");
+    TIFFSetField(f_out, TIFFTAG_SOFTWARE, "x3f_extract");
+    TIFFSetField(f_out, TIFFTAG_MAKE, "Sigma");
+    TIFFSetField(f_out, TIFFTAG_MODEL, "DP2 Merrill");
+  }
 
   TIFFWriteDirectory(f_out);
   TIFFClose(f_out);
