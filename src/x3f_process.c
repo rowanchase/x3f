@@ -908,7 +908,7 @@ static int convert_data(x3f_t *x3f,
          * Optimized to: R=0.965, G=1.005, B=1.035
          * This reduces overall RMSE from 21.50 to 20.65 on test image
          */
-        static const double sgain_multipliers[3] = {0.955, 0.955, 1.010};  /* R, G, B */
+        static const double sgain_multipliers[3] = {0.925, 0.955, 1.010};  /* R, G, B */
 
         /* Get the data */
         for (color = 0; color < 3; color++) {
