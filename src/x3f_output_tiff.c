@@ -176,6 +176,11 @@ x3f_return_t x3f_dump_raw_data_as_tiff(x3f_t *x3f,
       TIFFClose(f_out);
       return X3F_ARGUMENT_ERROR;
     }
+  } else if (encoding == NAIVE) {
+    if (!x3f_get_naive_image(x3f, &image, NULL, crop)) {
+      TIFFClose(f_out);
+      return X3F_ARGUMENT_ERROR;
+    }
   } else if (!x3f_get_image(x3f, &image, NULL, encoding,
 			    crop, fix_bad, denoise, apply_sgain,
 			    wb, use_tone_curve, apply_sharpen, sharpen_psf, sharpen_iter,

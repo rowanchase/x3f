@@ -20,6 +20,7 @@ typedef enum x3f_color_encoding_e {
   UNPROCESSED=4,	 /* RAW data without any preprocessing */
   QTOP=5,		 /* Quattro top layer without any preprocessing */
   BW=6,			 /* Black & white output (single-channel) */
+  NAIVE=7,		 /* Naive per-channel normalized RGB output */
 } x3f_color_encoding_t;
 
 typedef struct {
@@ -63,4 +64,9 @@ extern int x3f_get_bw_image(x3f_t *x3f,
 			    x3f_area16_t *image,
 			    x3f_image_levels_t *ilevels,
 			    int crop);
+
+extern int x3f_get_naive_image(x3f_t *x3f,
+			       x3f_area16_t *image,
+			       x3f_image_levels_t *ilevels,
+			       int crop);
 #endif

@@ -1190,6 +1190,124 @@ static int convert_data_bw(x3f_t *x3f,
   return 1;
 }
 
+static int convert_data_naive(x3f_t *x3f,
+			      x3f_area16_t *image,
+			      x3f_image_levels_t *ilevels)
+{
+  int row, col, color;
+  uint16_t max_out = 65535;
+  uint16_t *naive_data;
+  uint32_t naive_row_stride;
+  double max_ch[3] = {0.0, 0.0, 0.0};
+  double boost_ch[3] = {1.0, 1.0, 1.0};
+  double cc_matrix[9];
+  double wb_gain[3] = {1.0, 1.0, 1.0};
+
+  if (image->channels < 3) return 0;
+
+  for (row = 0; row < image->rows; row++)
+    for (col = 0; col < image->columns; col++)
+      for (color = 0; color < 3; color++) {
+	double val =
+	  image->data[image->row_stride * row + image->channels * col + color];
+	if (val > max_ch[color]) max_ch[color] = val;
+      }
+
+  for (color = 0; color < 3; color++)
+    if (max_ch[color] <= 0.0) max_ch[color] = 1.0;
+
+  {
+    double top_max = max_ch[2];
+    if (top_max <= 0.0) top_max = 1.0;
+    for (color = 0; color < 3; color++) max_ch[color] = top_max;
+  }
+
+  {
+    char *wb = x3f_get_wb(x3f);
+
+    if (!x3f_get_camf_matrix_for_wb(x3f, "WhiteBalanceColorCorrections",
+				    wb, 3, 3, cc_matrix))
+      x3f_3x3_identity(cc_matrix);
+
+    x3f_get_camf_matrix_for_wb(x3f, "WhiteBalanceGains", wb, 3, 0, wb_gain);
+  }
+
+  naive_row_stride = image->columns * 3;
+  naive_data = (uint16_t *)malloc(image->rows * naive_row_stride * sizeof(uint16_t));
+  if (!naive_data) {
+    x3f_printf(ERR, "Could not allocate naive output buffer\n");
+    return 0;
+  }
+
+  for (row = 0; row < image->rows; row++)
+    for (col = 0; col < image->columns; col++) {
+      uint16_t *pix =
+	&image->data[image->row_stride * row + image->channels * col];
+      uint16_t *out =
+	&naive_data[row * naive_row_stride + col * 3];
+      {
+	double input[3], output[3];
+
+	for (color = 0; color < 3; color++)
+	  input[color] = ((double)pix[color] - ilevels->black[color])
+	    * boost_ch[color] * wb_gain[color] / max_ch[color];
+
+	x3f_3x3_3x1_mul(cc_matrix, input, output);
+
+	for (color = 0; color < 3; color++) {
+	  double val = output[color] * (double)max_out;
+	  if (val < 0.0) val = 0.0;
+	  if (val > (double)max_out) val = (double)max_out;
+	  out[color] = (uint16_t)round(val);
+	}
+      }
+    }
+
+  free(image->buf);
+  image->data = image->buf = naive_data;
+  image->channels = 3;
+  image->row_stride = naive_row_stride;
+
+  ilevels->white[0] = ilevels->white[1] = ilevels->white[2] = max_out;
+
+  return 1;
+}
+
+/* extern */ int x3f_get_naive_image(x3f_t *x3f,
+				     x3f_area16_t *image,
+				     x3f_image_levels_t *ilevels,
+				     int crop)
+{
+  x3f_area16_t original_image;
+  x3f_image_levels_t il;
+
+  if (!x3f_image_area(x3f, &original_image)) return 0;
+
+  {
+    double black_level[3], black_dev[3];
+    if (!get_black_level(x3f, &original_image, 1, 3, black_level, black_dev)) {
+      x3f_printf(ERR, "Could not get black level for naive image\n");
+      return 0;
+    }
+    il.black[0] = black_level[0];
+    il.black[1] = black_level[1];
+    il.black[2] = black_level[2];
+    il.white[0] = il.white[1] = il.white[2] = 65535.0;
+  }
+
+  if (!crop || !x3f_crop_area_camf(x3f, "ActiveImageArea", &original_image, 1,
+				   image))
+    *image = original_image;
+
+  if (!convert_data_naive(x3f, image, &il)) {
+    free(image->buf);
+    return 0;
+  }
+
+  if (ilevels) *ilevels = il;
+  return 1;
+}
+
 static int run_denoising(x3f_t *x3f)
 {
   x3f_area16_t original_image, image;
