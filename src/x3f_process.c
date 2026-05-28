@@ -1112,6 +1112,84 @@ static int convert_data(x3f_t *x3f,
   return 1;
 }
 
+static int convert_data_bw(x3f_t *x3f,
+			   x3f_area16_t *image,
+			   x3f_image_levels_t *ilevels)
+{
+  int row, col, color;
+  uint16_t max_out = 65535;
+  uint16_t *summed_data;
+  uint32_t summed_row_stride;
+  double max_ch[3] = {0.0, 0.0, 0.0};
+
+  if (image->channels < 3) return 0;
+
+  for (row = 0; row < image->rows; row++) {
+    for (col = 0; col < image->columns; col++) {
+      for (color = 0; color < 3; color++) {
+	double val =
+	  image->data[image->row_stride * row + image->channels * col + color];
+	if (val > max_ch[color]) max_ch[color] = val;
+      }
+    }
+  }
+
+  for (color = 0; color < 3; color++)
+    if (max_ch[color] <= 0.0) max_ch[color] = 1.0;
+
+  summed_row_stride = image->columns;
+  summed_data = (uint16_t *)malloc(image->rows * summed_row_stride * sizeof(uint16_t));
+  if (!summed_data) {
+    x3f_printf(ERR, "Could not allocate B&W output buffer\n");
+    return 0;
+  }
+
+  for (row = 0; row < image->rows; row++) {
+    for (col = 0; col < image->columns; col++) {
+      uint16_t *pix =
+	&image->data[image->row_stride * row + image->channels * col];
+      double c0 = (double)pix[0] / max_ch[0];
+      double c1 = (double)pix[1] / max_ch[1];
+      double c2 = (double)pix[2] / max_ch[2];
+      double val = (c0 + 2.0 * c1 + c2) / 4.0 * (double)max_out;
+      if (val > (double)max_out) val = (double)max_out;
+      summed_data[row * summed_row_stride + col] = (uint16_t)round(val);
+    }
+  }
+
+  free(image->buf);
+  image->data = image->buf = summed_data;
+  image->channels = 1;
+  image->row_stride = summed_row_stride;
+
+  ilevels->black[0] = ilevels->black[1] = ilevels->black[2] = 0.0;
+  ilevels->white[0] = ilevels->white[1] = ilevels->white[2] = max_out;
+
+  return 1;
+}
+
+/* extern */ int x3f_get_bw_image(x3f_t *x3f,
+				  x3f_area16_t *image,
+				  x3f_image_levels_t *ilevels,
+				  int crop)
+{
+  x3f_area16_t original_image;
+  x3f_image_levels_t il;
+
+  if (!x3f_image_area(x3f, &original_image)) return 0;
+  if (!crop || !x3f_crop_area_camf(x3f, "ActiveImageArea", &original_image, 1,
+				   image))
+    *image = original_image;
+
+  if (!convert_data_bw(x3f, image, &il)) {
+    free(image->buf);
+    return 0;
+  }
+
+  if (ilevels) *ilevels = il;
+  return 1;
+}
+
 static int run_denoising(x3f_t *x3f)
 {
   x3f_area16_t original_image, image;

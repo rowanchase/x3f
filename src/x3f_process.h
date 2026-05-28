@@ -19,6 +19,7 @@ typedef enum x3f_color_encoding_e {
   PPRGB=3,		 /* Preproccesed and convered to ProPhoto RGB */
   UNPROCESSED=4,	 /* RAW data without any preprocessing */
   QTOP=5,		 /* Quattro top layer without any preprocessing */
+  BW=6,			 /* Black & white output (single-channel) */
 } x3f_color_encoding_t;
 
 typedef struct {
@@ -57,4 +58,9 @@ extern int x3f_get_preview(x3f_t *x3f,
 			   uint32_t max_width,
 			   x3f_area8_t *preview,
 			   int use_tone_curve);
+
+extern int x3f_get_bw_image(x3f_t *x3f,
+			    x3f_area16_t *image,
+			    x3f_image_levels_t *ilevels,
+			    int crop);
 #endif
