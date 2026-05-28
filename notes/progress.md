@@ -127,7 +127,33 @@ This project aims to make `x3f_extract` output match Sigma Photo Pro (SPP) for M
 
 ---
 
-## Current Metrics (As of 2026-03-09)
+## 2026-04-03: Darktable Processing Analysis
+
+### Experiment
+Tested whether darktable processing (from XMP file) could provide improvements to x3f_extract.
+
+### Findings
+| Metric | x3f_extract | darktable+XMP | SPP |
+|--------|-------------|---------------|-----|
+| RMSE | 17.12 | 19.14 | 0 |
+| Saturation | 0.127 | 0.218 | 0.088 |
+
+**Key Finding:** darktable output is WORSE than current x3f_extract (RMSE 19.14 vs 17.12).
+
+### Attempts
+1. **Global desaturation (0.7)** - RMSE increased to 17.30 (worse)
+2. **Channel mixer only** - RMSE increased to 19.00 (much worse)
+3. **Combined** - RMSE 16.69 but caused regressions on other files
+
+### Conclusion
+- Darktable XMP not a good reference for improving x3f_extract
+- Per-scene optimizations don't generalize
+- Channel mixer needs per-camera/per-ISO matrices
+- Code saved in disabled block for future use
+
+---
+
+## Current Metrics (As of 2026-04-03)
 
 ### Best Performing Files (DeltaE < 25)
 | File | RMSE | DeltaE | Notes |
