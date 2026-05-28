@@ -958,7 +958,7 @@ static int convert_data(x3f_t *x3f,
         /* Global desaturation: minimal film-like effect (0.1 = 10% desaturation) */
         {
           double gray = (output[0] + output[1] + output[2]) / 3.0;
-          double desat_factor = 1.4;
+          double desat_factor = 1.7;
           for (color = 0; color < 3; color++) {
             output[color] = gray + (output[color] - gray) * desat_factor;
           }
@@ -1036,6 +1036,29 @@ static int convert_data(x3f_t *x3f,
             output[color] = corrected[color];
           }
         }
+
+        /* Channel mixer - disabled, needs per-scene tuning
+         * The darktable-derived matrix helps some files but hurts others
+         * Re-enable with appropriate per-camera or per-ISO matrices */
+        #if 0
+        {
+          static const double mixer[9] = {
+            1.00, 0.00, 0.05,  /* R row */
+            0.06, 1.00, -0.05,  /* G row */
+            -0.33, 0.09, 1.08   /* B row */
+          };
+          double mixed[3];
+          for (color = 0; color < 3; color++) {
+            mixed[color] = 
+              mixer[color*3 + 0] * output[0] +
+              mixer[color*3 + 1] * output[1] +
+              mixer[color*3 + 2] * output[2];
+          }
+          for (color = 0; color < 3; color++) {
+            output[color] = mixed[color];
+          }
+        }
+        #endif
 
         /* Apply log-like tone curve to lift shadows/mid-tones while preserving highlights
          * This replaces the old 2.5x boost + gamma LUT approach */
