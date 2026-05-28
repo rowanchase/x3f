@@ -1202,6 +1202,8 @@ static int convert_data_naive(x3f_t *x3f,
   double boost_ch[3] = {1.0, 1.0, 1.0};
   double cc_matrix[9];
   double wb_gain[3] = {1.0, 1.0, 1.0};
+  x3f_spatial_gain_corr_t sgain[MAXCORR];
+  int sgain_num = 0;
 
   if (image->channels < 3) return 0;
 
@@ -1217,9 +1219,9 @@ static int convert_data_naive(x3f_t *x3f,
     if (max_ch[color] <= 0.0) max_ch[color] = 1.0;
 
   {
-    double top_max = max_ch[2];
-    if (top_max <= 0.0) top_max = 1.0;
-    for (color = 0; color < 3; color++) max_ch[color] = top_max;
+    double bottom_max = max_ch[0];
+    if (bottom_max <= 0.0) bottom_max = 1.0;
+    for (color = 0; color < 3; color++) max_ch[color] = bottom_max;
   }
 
   {
@@ -1230,6 +1232,29 @@ static int convert_data_naive(x3f_t *x3f,
       x3f_3x3_identity(cc_matrix);
 
     x3f_get_camf_matrix_for_wb(x3f, "WhiteBalanceGains", wb, 3, 0, wb_gain);
+
+    {
+      double fnumber_gain_fact[3];
+      if (x3f_get_camf_float_vector(x3f, "FNumberGainFact", fnumber_gain_fact))
+	for (color = 0; color < 3; color++)
+	  wb_gain[color] *= fnumber_gain_fact[color];
+    }
+
+    {
+      double sensor_adj[3];
+      if (x3f_get_camf_float_vector(x3f, "SensorAdjustmentGainFact", sensor_adj))
+	for (color = 0; color < 3; color++)
+	  wb_gain[color] *= sensor_adj[color];
+    }
+
+    {
+      double temp_adj[3];
+      if (x3f_get_camf_float_vector(x3f, "TempGainFact", temp_adj))
+	for (color = 0; color < 3; color++)
+	  wb_gain[color] *= temp_adj[color];
+    }
+
+    sgain_num = x3f_get_spatial_gain(x3f, wb, sgain);
   }
 
   naive_row_stride = image->columns * 3;
@@ -1245,23 +1270,30 @@ static int convert_data_naive(x3f_t *x3f,
 	&image->data[image->row_stride * row + image->channels * col];
       uint16_t *out =
 	&naive_data[row * naive_row_stride + col * 3];
-      {
-	double input[3], output[3];
+      double input[3], output[3];
 
-	for (color = 0; color < 3; color++)
-	  input[color] = ((double)pix[color] - ilevels->black[color])
-	    * boost_ch[color] * wb_gain[color] / max_ch[color];
+      for (color = 0; color < 3; color++) {
+	double sg = x3f_calc_spatial_gain(sgain, sgain_num,
+					   row, col, color,
+					   image->rows, image->columns);
+	input[color] = sg * ((double)pix[color] - ilevels->black[color])
+	  * boost_ch[color] * wb_gain[color] / max_ch[color];
+      }
 
-	x3f_3x3_3x1_mul(cc_matrix, input, output);
+      x3f_3x3_3x1_mul(cc_matrix, input, output);
 
-	for (color = 0; color < 3; color++) {
-	  double val = output[color] * (double)max_out;
-	  if (val < 0.0) val = 0.0;
-	  if (val > (double)max_out) val = (double)max_out;
-	  out[color] = (uint16_t)round(val);
-	}
+      for (color = 0; color < 3; color++) {
+	double x = output[color];
+	if (x < 0.0) x = 0.0;
+	double exp_k = exp(3.0);
+	double y = log(1.0 + x * (exp_k - 1.0)) / 3.0;
+	if (y < 0.0) y = 0.0;
+	if (y > 1.0) y = 1.0;
+	out[color] = (uint16_t)round(y * (double)max_out);
       }
     }
+
+  x3f_cleanup_spatial_gain(sgain, sgain_num);
 
   free(image->buf);
   image->data = image->buf = naive_data;
