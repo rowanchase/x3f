@@ -1064,7 +1064,7 @@ static int convert_data(x3f_t *x3f,
          * This replaces the old 2.5x boost + gamma LUT approach */
         if (use_tone_curve) {
           /* Log curve parameters - shadow_boost controls shadow/mid-tone lift */
-          double shadow_boost = 4.5;  /* Strong shadow lift to match SPP brightness */
+          double shadow_boost = 3.5;  /* Strong shadow lift to match SPP brightness */
           
           /* Calculate uniform scale factor only if highlights need compression */
           double scale_factor = 1.0;
@@ -1663,7 +1663,7 @@ static int expand_quattro(x3f_t *x3f, int denoise, x3f_area16_t *expanded)
 
       /* Apply log-like tone curve to preview (if enabled) */
       if (use_tone_curve) {
-        double shadow_boost = 4.0;  /* Match main processing */
+        double shadow_boost = 3.0;  /* Match main processing */
         
         for (color = 0; color < 3; color++) {
           double x = output[color];
