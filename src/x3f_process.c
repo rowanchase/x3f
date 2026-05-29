@@ -1348,6 +1348,8 @@ static int convert_data_naive(x3f_t *x3f,
 
   if (!x3f_image_area(x3f, &original_image)) return 0;
 
+  interpolate_bad_pixels(x3f, &original_image, 3);
+
   {
     double black_level[3], black_dev[3];
     if (!get_black_level(x3f, &original_image, 1, 3, black_level, black_dev)) {
