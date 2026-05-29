@@ -1270,26 +1270,59 @@ static int convert_data_naive(x3f_t *x3f,
 	&image->data[image->row_stride * row + image->channels * col];
       uint16_t *out =
 	&naive_data[row * naive_row_stride + col * 3];
-      double input[3], output[3];
+      {
+	double input[3], output[3];
 
-      for (color = 0; color < 3; color++) {
-	double sg = x3f_calc_spatial_gain(sgain, sgain_num,
-					   row, col, color,
-					   image->rows, image->columns);
-	input[color] = sg * ((double)pix[color] - ilevels->black[color])
-	  * boost_ch[color] * wb_gain[color] / max_ch[color];
-      }
+	for (color = 0; color < 3; color++) {
+	  double sg = x3f_calc_spatial_gain(sgain, sgain_num,
+					     row, col, color,
+					     image->rows, image->columns);
+	  input[color] = sg * ((double)pix[color] - ilevels->black[color])
+	    * boost_ch[color] * wb_gain[color] / max_ch[color];
+	}
 
-      x3f_3x3_3x1_mul(cc_matrix, input, output);
 
-      for (color = 0; color < 3; color++) {
-	double x = output[color];
-	if (x < 0.0) x = 0.0;
-	double exp_k = exp(3.0);
-	double y = log(1.0 + x * (exp_k - 1.0)) / 3.0;
-	if (y < 0.0) y = 0.0;
-	if (y > 1.0) y = 1.0;
-	out[color] = (uint16_t)round(y * (double)max_out);
+        // Basic Noise Reduction
+	// Progressively blend the lower two sensor layers with the top layer value
+	// for darker values.
+	if (input[1] < 0.025) {
+	  double alpha = (1.0 - input[1] / 1.0);
+	  input[1] = input[1] * (1.0 - alpha) + input[0] * alpha;
+	}
+	if (input[2] < 0.025) {
+	  double alpha = (1.0 - input[2] / 1.0);
+	  input[2] = input[2] * (1.0 - alpha) + input[0] * alpha;
+	}
+
+	if (input[1] < 0.01) {
+	  double alpha = (1.0 - input[1] / 1.0);
+	  input[1] = input[1] * (1.0 - alpha) + input[0] * alpha;
+	}
+	if (input[2] < 0.01) {
+	  double alpha = (1.0 - input[2] / 1.0);
+	  input[2] = input[2] * (1.0 - alpha) + input[0] * alpha;
+	}
+
+	if (input[1] < 0.005) {
+	  double alpha = (1.0 - input[1] / 1.0);
+	  input[1] = input[1] * (1.0 - alpha) + input[0] * alpha;
+	}
+	if (input[2] < 0.01) {
+	  double alpha = (1.0 - input[2] / 1.0);
+	  input[2] = input[2] * (1.0 - alpha) + input[0] * alpha;
+	}
+
+	x3f_3x3_3x1_mul(cc_matrix, input, output);
+
+	for (color = 0; color < 3; color++) {
+	  double x = output[color];
+	  if (x < 0.0) x = 0.0;
+	  double exp_k = exp(3.0);
+	  double y = log(1.0 + x * (exp_k - 1.0)) / 3.0;
+	  if (y < 0.0) y = 0.0;
+	  if (y > 1.0) y = 1.0;
+	  out[color] = (uint16_t)round(y * (double)max_out);
+	}
       }
     }
 
