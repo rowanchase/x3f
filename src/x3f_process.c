@@ -1190,6 +1190,8 @@ static int convert_data_bw(x3f_t *x3f,
   return 1;
 }
 
+#define COLOR_SHADING_VARIANT 5
+
 static int convert_data_naive(x3f_t *x3f,
 			      x3f_area16_t *image,
 			      x3f_image_levels_t *ilevels)
@@ -1204,6 +1206,8 @@ static int convert_data_naive(x3f_t *x3f,
   double wb_gain[3] = {1.0, 1.0, 1.0};
   x3f_spatial_gain_corr_t sgain[MAXCORR];
   int sgain_num = 0;
+  double csf_matrix[4] = {0.0, 0.0, 0.0, 0.0};
+  int has_csf = 0;
 
   if (image->channels < 3) return 0;
 
@@ -1255,6 +1259,8 @@ static int convert_data_naive(x3f_t *x3f,
     }
 
     sgain_num = x3f_get_spatial_gain(x3f, wb, sgain);
+
+    has_csf = x3f_get_color_shading_factor(x3f, wb, csf_matrix);
   }
 
   naive_row_stride = image->columns * 3;
@@ -1312,7 +1318,61 @@ static int convert_data_naive(x3f_t *x3f,
 	  input[2] = input[2] * (1.0 - alpha) + input[0] * alpha;
 	}
 
+#if COLOR_SHADING_VARIANT == 1 || COLOR_SHADING_VARIANT == 2
+	if (has_csf) {
+	  double row_norm = (double)row / (image->rows - 1);
+	  double col_norm = (double)col / (image->columns - 1);
+	  double r_correction =
+	    1.0 + csf_matrix[0] * col_norm + csf_matrix[1] * row_norm;
+	  double b_correction =
+	    1.0 + csf_matrix[2] * col_norm + csf_matrix[3] * row_norm;
+#if COLOR_SHADING_VARIANT == 1
+	  input[0] /= r_correction;
+	  input[2] /= b_correction;
+#else
+	  input[0] *= r_correction;
+	  input[2] *= b_correction;
+#endif
+	}
+#endif
+
 	x3f_3x3_3x1_mul(cc_matrix, input, output);
+
+#if COLOR_SHADING_VARIANT == 3
+	if (has_csf) {
+	  double row_norm = (double)row / (image->rows - 1);
+	  double col_norm = (double)col / (image->columns - 1);
+	  double r_correction =
+	    1.0 + csf_matrix[0] * col_norm + csf_matrix[1] * row_norm;
+	  double b_correction =
+	    1.0 + csf_matrix[2] * col_norm + csf_matrix[3] * row_norm;
+	  output[0] /= r_correction;
+	  output[2] /= b_correction;
+	}
+#endif
+
+#if COLOR_SHADING_VARIANT == 4
+	if (has_csf) {
+	  double row_norm = (double)row / (image->rows - 1);
+	  double col_norm = (double)col / (image->columns - 1);
+	  double r_correction =
+	    1.0 + csf_matrix[0] * col_norm + csf_matrix[1] * row_norm;
+	  double b_correction =
+	    1.0 + csf_matrix[2] * col_norm + csf_matrix[3] * row_norm;
+	  output[0] *= r_correction;
+	  output[2] *= b_correction;
+	}
+#endif
+
+#if COLOR_SHADING_VARIANT == 5
+	if (has_csf) {
+	  double row_norm = (double)row / (image->rows - 1);
+	  double r_correction = 1.0 + csf_matrix[1] * row_norm;
+	  double b_correction = 1.0 + csf_matrix[3] * row_norm;
+	  output[0] *= r_correction;
+	  output[2] *= b_correction;
+	}
+#endif
 
 	for (color = 0; color < 3; color++) {
 	  double x = output[color];
