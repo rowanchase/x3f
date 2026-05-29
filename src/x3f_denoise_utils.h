@@ -17,10 +17,13 @@
 
 #include "x3f_io.h"
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 #include <opencv2/core.hpp>
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/photo.hpp>
 #include <opencv2/imgproc.hpp>
+#pragma GCC diagnostic pop
 
 typedef void (*conv_t)(x3f_area16_t *image);
 

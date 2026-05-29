@@ -10,10 +10,13 @@
 #include <iostream>
 #include <inttypes.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 #include <opencv2/core.hpp>
 #include <opencv2/core/ocl.hpp>
 #include <opencv2/photo.hpp>
 #include <opencv2/imgproc.hpp>
+#pragma GCC diagnostic pop
 
 #include "x3f_denoise_utils.h"
 #include "x3f_denoise.h"

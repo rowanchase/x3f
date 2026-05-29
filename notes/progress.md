@@ -179,6 +179,29 @@ Tested whether darktable processing (from XMP file) could provide improvements t
 
 ---
 
+### 8. Naive Pipeline - Spatial Color Correction (2026-05-29)
+**CSF Variants 1-5 implemented:**
+- Cameras store CAMF `ColorShadingFactor`: 2x2 matrix [R_col, R_row; B_col, B_row]
+- Tested 5 application strategies via `#define COLOR_SHADING_VARIANT`:
+  - 1-2: Applied in raw sensor space (before CCM) → CCM off-diagonals cause artifacts
+  - 3: Divide in output RGB space → reduced RMSE but wrong direction
+  - 4: Multiply in output space, full column+row gradient → U-shaped artifacts
+  - 5: Multiply in output space, row-only gradient → **BEST performer**
+
+**Variant 5 results (row-only output multiply):**
+- Bottom green cast: reduced 64% (G-R from +7.5 to +2.7)
+- Middle region: color-neutral (G-R from +1.0 to -0.1)
+- RMSE: 75.15 → 74.26 (full-pipeline RMSE comparison)
+- Residual: bottom-right corner G-R=+4.1 (likely vignetting, needs non-linear correction)
+
+**Key finding:** CSF must be applied AFTER CCM in clean RGB space. Applying before CCM causes off-diagonal terms (-1.68 for G_out/R_in) to invert & amplify small corrections, creating spatial color artifacts.
+
+**Remaining naive pipeline issues:**
+- Global ~70-point brightness offset (all channels ~27% darker than reference)
+- Residual bottom-right green cast (+4.1 G-R)
+
+---
+
 ## Remaining Work
 
 ### 1. Color Matrix Correction (Priority: High)

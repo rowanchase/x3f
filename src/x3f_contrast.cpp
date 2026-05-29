@@ -12,8 +12,11 @@
 #include <cstring>
 #include <algorithm>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#pragma GCC diagnostic pop
 
 #include "x3f_contrast.h"
 #include "x3f_printf.h"
@@ -39,8 +42,8 @@ void x3f_micro_contrast(x3f_area16_t *image,
         Mat input(image->rows, image->columns, CV_32F);
         float* in_data = (float*)input.data;
         
-        for (int row = 0; row < image->rows; row++) {
-            for (int col = 0; col < image->columns; col++) {
+        for (uint32_t row = 0; row < image->rows; row++) {
+            for (uint32_t col = 0; col < image->columns; col++) {
                 uint16_t val = image->data[image->row_stride * row + 
                                             image->channels * col + ch];
                 in_data[row * image->columns + col] = (float)val;
@@ -69,13 +72,13 @@ void x3f_micro_contrast(x3f_area16_t *image,
         
         // Step 5: Clamp to valid range
         float* out_data = (float*)output.data;
-        for (int i = 0; i < image->rows * image->columns; i++) {
+        for (uint32_t i = 0; i < image->rows * image->columns; i++) {
             out_data[i] = std::max(0.0f, std::min(max_val, out_data[i]));
         }
         
         // Step 6: Copy back to image
-        for (int row = 0; row < image->rows; row++) {
-            for (int col = 0; col < image->columns; col++) {
+        for (uint32_t row = 0; row < image->rows; row++) {
+            for (uint32_t col = 0; col < image->columns; col++) {
                 float val = out_data[row * image->columns + col];
                 uint16_t out_val = (uint16_t)val;
                 image->data[image->row_stride * row + 

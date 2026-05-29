@@ -89,7 +89,6 @@ static void usage(char *progname)
           "   -compress       Enable ZIP compression for DNG and TIFF output\n"
            "   -ocl            Use OpenCL\n"
            "   -bw             Enable black & white output (raw channel sum-average, single-channel 16-bit TIFF)\n"
-           "   -naive          Enable naive RGB output (per-channel normalization, 16-bit TIFF)\n"
 	  "HIGHLIGHT RECOVERY (override CAMF values)\n"
           "   -hl-blending-low <F>    Highlight blending low threshold\n"
           "   -hl-blending-high <F>   Highlight blending high threshold\n"
@@ -310,8 +309,6 @@ int main(int argc, char *argv[])
       use_opencl = 1;
     else if (!strcmp(argv[i], "-bw"))
       color_encoding = BW;
-    else if (!strcmp(argv[i], "-naive"))
-      color_encoding = NAIVE;
 
   /* Strange Stuff */
     else if ((!strcmp(argv[i], "-offset")) && (i+1)<argc)

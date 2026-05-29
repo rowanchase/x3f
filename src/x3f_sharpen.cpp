@@ -12,8 +12,11 @@
 #include <cstring>
 #include <algorithm>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#pragma GCC diagnostic pop
 
 #include "x3f_sharpen.h"
 #include "x3f_printf.h"
@@ -124,8 +127,8 @@ void x3f_rl_deconv(x3f_area16_t *image,
         Mat input(image->rows, image->columns, CV_32F);
         float* in_data = (float*)input.data;
         
-        for (int row = 0; row < image->rows; row++) {
-            for (int col = 0; col < image->columns; col++) {
+        for (uint32_t row = 0; row < image->rows; row++) {
+            for (uint32_t col = 0; col < image->columns; col++) {
                 uint16_t val = image->data[image->row_stride * row + 
                                             image->channels * col + ch];
                 in_data[row * image->columns + col] = (float)val;
@@ -140,8 +143,8 @@ void x3f_rl_deconv(x3f_area16_t *image,
         }
         
         float* out_data = (float*)estimate.data;
-        for (int row = 0; row < image->rows; row++) {
-            for (int col = 0; col < image->columns; col++) {
+        for (uint32_t row = 0; row < image->rows; row++) {
+            for (uint32_t col = 0; col < image->columns; col++) {
                 float val = out_data[row * image->columns + col];
                 uint16_t out_val = (uint16_t)std::max(0.0f, std::min(max_val, val));
                 image->data[image->row_stride * row + 
